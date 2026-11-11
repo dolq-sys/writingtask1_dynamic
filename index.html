@@ -1,0 +1,976 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Dynamic Charts Revision</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lexend:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: graph-paper study desk — sticky left nav of sections, one section on screen at a time; inside each, chart pinned left while sentence tasks scroll right. Light only (teacher's preference). */
+:root{
+  --paper:#f6f8fb; --grid:#e3e9f2; --card:#ffffff; --ink:#18233a; --muted:#5a6681; --line:#d5dce8;
+  --navy:#1f3a68; --red:#c8323c; --teal:#14806f; --amber:#b9790a; --violet:#6a4bb0;
+  --ok:#14806f; --okbg:#e3f4ef; --bad:#b4313a; --badbg:#fbe9ea; --tip:#fff6dc;
+  --f-head:"Lexend","Be Vietnam Pro",system-ui,sans-serif;
+  --f-body:"Be Vietnam Pro",system-ui,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--paper);color:var(--ink)}
+body{font-family:var(--f-body);font-size:17px;line-height:1.55;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--navy)}
+button{font:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #7aa7ff;outline-offset:2px}
+h1,h2,h3{font-family:var(--f-head);text-wrap:balance;margin:0;line-height:1.2}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--navy);color:#fff;
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.top h1{font-size:19px;font-weight:600;letter-spacing:.2px}
+.top .sub{font-size:13px;opacity:.75}
+.prog{flex:1;min-width:160px;display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.bar{width:min(260px,40vw);height:9px;background:rgba(255,255,255,.18);border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#7fd6c2;transition:width .4s}
+.prog b{font-family:var(--f-mono);font-size:14px}
+.iconbtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 10px;font-size:14px;display:inline-flex;gap:6px;align-items:center}
+.iconbtn svg{width:16px;height:16px}
+.navtoggle{display:none}
+
+.wrap{display:grid;grid-template-columns:300px minmax(0,1fr);gap:24px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;max-width:1500px;margin:0 auto}
+nav.side{width:100%;position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);align-self:start;max-height:calc(100vh - 90px);overflow:auto;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+.side .grp{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:12px 10px 4px}
+.side a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:15px}
+.side a:hover{background:var(--paper)}
+.side a.on{background:var(--navy);color:#fff}
+.side a .code{font-family:var(--f-mono);font-size:12px;min-width:30px;text-align:center;padding:1px 4px;border-radius:5px;background:var(--grid);color:var(--navy)}
+.side a.on .code{background:rgba(255,255,255,.2);color:#fff}
+.side a .cnt{margin-left:auto;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.side a.on .cnt{color:#cfe0ff}
+.side a .cnt.full{color:var(--ok);font-weight:600}
+.side a.on .cnt.full{color:#7fd6c2}
+
+main{min-width:0}
+section.view{display:none}
+section.view.on{display:block}
+.shead{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.shead .tag{font-family:var(--f-mono);background:var(--red);color:#fff;padding:4px 10px;border-radius:6px;font-size:15px}
+.shead h2{font-size:clamp(24px,3vw,32px);color:var(--navy)}
+.shead p{margin:0;color:var(--muted);width:100%}
+
+.theory{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:grid;grid-template-columns:1.1fr 1fr;gap:22px;margin-bottom:22px}
+.theory>div{min-width:0}
+.theory h3{font-size:16px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-weight:600}
+.formula{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:17px;margin:4px 0 12px}
+.formula span{padding:4px 10px;border-radius:7px;border:1.5px solid;font-weight:600}
+.k-s{border-color:var(--navy);color:var(--navy);background:#eaf0fa}
+.k-v{border-color:var(--red);color:var(--red);background:#fcecee}
+.k-n{border-color:var(--teal);color:var(--teal);background:#e3f4ef}
+.k-t{border-color:var(--amber);color:#8a5a00;background:#fff3d6}
+.k-x{border-color:var(--violet);color:var(--violet);background:#efeafa}
+.ex{border-left:4px solid var(--navy);background:var(--paper);padding:10px 14px;border-radius:0 8px 8px 0;margin:8px 0}
+.ex em{font-style:normal;color:var(--red);font-weight:600}
+.note{background:var(--tip);border:1px solid #f0dca0;border-radius:10px;padding:10px 14px;font-size:15.5px;margin-top:10px}
+.note b{color:#7a5300}
+.wrongright{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:15.5px;margin-top:6px}
+.wrongright .x{color:var(--bad);font-weight:700}.wrongright .o{color:var(--ok);font-weight:700}
+.wrongright s{color:var(--bad)}
+table.vt{border-collapse:collapse;font-size:15.5px;width:100%}
+table.vt td,table.vt th{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+table.vt th{background:var(--paper);font-weight:600}
+
+.block{margin-bottom:26px}
+.blabel{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:6px 0 10px}
+.blabel h3{font-size:20px;color:var(--ink)}
+.blabel .src{font-size:13.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.chartcard{position:sticky;top:calc(env(safe-area-inset-top,0px) + 74px);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 14px 10px}
+.prompt{font-weight:600;font-size:15.5px;margin:0 0 6px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;margin:2px 0 4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend svg{width:26px;height:10px}
+.chartbox{overflow-x:auto}
+.chartcard,.card{min-width:0}
+.chartbox svg{display:block;width:100%;height:auto;min-width:420px}
+.chartfoot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:4px}
+.linkbtn{background:none;border:none;color:var(--navy);text-decoration:underline;padding:0;font-size:13.5px}
+.datatable{overflow-x:auto;margin-top:6px}
+.datatable table{border-collapse:collapse;font-family:var(--f-mono);font-size:13px;width:100%}
+.datatable td,.datatable th{border:1px solid var(--line);padding:3px 6px;text-align:right}
+.datatable th:first-child,.datatable td:first-child{text-align:left;font-family:var(--f-body)}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;font-size:13px;padding:5px 8px;border-radius:6px;z-index:50;font-family:var(--f-mono);display:none}
+
+.tasks{display:flex;flex-direction:column;gap:14px;min-width:0}
+.task{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:14px;transition:border-color .2s,box-shadow .2s}
+.task.focus{border-color:var(--navy);box-shadow:0 0 0 3px #dce6f7}
+.task.done{border-color:var(--ok)}
+.thead{display:flex;gap:10px;align-items:flex-start}
+.thead .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center}
+.task.done .thead .n{background:var(--ok)}
+.cue{margin:0;font-size:16.5px;flex:1;min-width:0}
+.cue b{color:var(--red)}
+.cue .use{display:inline-block;font-size:13px;background:#efeafa;color:var(--violet);border-radius:5px;padding:0 6px;font-weight:600;margin-left:4px}
+textarea{width:100%;margin-top:10px;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit;font-size:17px;resize:vertical;min-height:72px;background:#fbfcfe;color:var(--ink)}
+textarea:focus{border-color:var(--navy);background:#fff}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.btn{border:1.5px solid var(--navy);background:var(--navy);color:#fff;border-radius:8px;padding:7px 14px;font-weight:600;font-size:15px}
+.btn.ghost{background:#fff;color:var(--navy)}
+.btn.soft{background:#fff;color:var(--muted);border-color:var(--line)}
+.fb{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:15px}
+.fb li{display:flex;gap:8px;align-items:flex-start;padding:5px 9px;border-radius:7px}
+.fb li.ok{background:var(--okbg);color:#0d5a4d}
+.fb li.no{background:var(--badbg);color:#8c2129}
+.fb li.err{background:var(--tip);color:#6b4a00}
+.fb li svg{flex:none;width:16px;height:16px;margin-top:3px}
+.fb li.sum{font-weight:600}
+.hintbox,.modelbox{margin-top:10px;border-radius:9px;padding:10px 12px;font-size:15.5px}
+.hintbox{background:var(--tip);border:1px dashed #e2c46e}
+.modelbox{background:#eef3fb;border:1px solid #c9d6ee}
+.modelbox p{margin:4px 0}
+.modelbox .lab{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:26px;flex-wrap:wrap}
+.pager button{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:12px 16px;text-align:left;min-width:0;max-width:48%}
+.pager button small{display:block;color:var(--muted);font-size:12.5px}
+.pager button.nx{margin-left:auto;text-align:right;border-color:var(--navy)}
+
+/* intro */
+.intro{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+.intro>div{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.steps{margin:8px 0 0;padding-left:22px}
+.steps li{margin:6px 0}
+.map{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.map a{display:block;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:14.5px;background:var(--paper)}
+.map a b{font-family:var(--f-mono);color:var(--red);margin-right:6px}
+
+/* sample */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:14.5px;font-weight:600;display:inline-flex;gap:7px;align-items:center}
+.chip i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.chip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.essay{font-size:17.5px;line-height:1.85;max-width:78ch}
+.essay p{margin:0 0 14px}
+.essay mark{background:transparent;color:inherit;border-radius:4px;padding:1px 2px;transition:background .2s}
+.essay.h-s1 mark.s1{background:#dbe5f7;box-shadow:inset 0 -2px var(--navy)}
+.essay.h-s2 mark.s2{background:#d5efe9;box-shadow:inset 0 -2px var(--teal)}
+.essay.h-nom mark.nom{background:#efe7fb;box-shadow:inset 0 -2px var(--violet)}
+.essay.h-cmp mark.cmp{background:#fff0cc;box-shadow:inset 0 -2px var(--amber)}
+.essay.h-peak mark.peak{background:#fde0e2;box-shadow:inset 0 -2px var(--red)}
+.essay.h-before mark.before{background:#ffe4cf;box-shadow:inset 0 -2px #c25b12}
+.essay.h-link mark.link{background:#e6e9ee;box-shadow:inset 0 -2px var(--muted)}
+.qa{margin-top:14px}
+.qa details{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:8px}
+.qa summary{cursor:pointer;font-weight:600}
+
+/* final */
+.meter{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.meter span{font-size:14px;border-radius:999px;padding:4px 11px;border:1.5px solid var(--line);color:var(--muted);background:#fff}
+.meter span.hit{border-color:var(--ok);color:#0d5a4d;background:var(--okbg);font-weight:600}
+.stat{font-family:var(--f-mono);font-size:14px;color:var(--muted);margin-top:8px}
+
+.minitable{border-collapse:collapse;font-size:15px;margin-top:8px}
+.minitable td,.minitable th{border:1px solid var(--line);padding:4px 10px;font-family:var(--f-mono)}
+.minitable th{background:var(--paper);font-family:var(--f-body)}
+
+.disclaim{font-size:13px;color:var(--muted);margin-top:24px}
+
+/* gửi bài */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(15,25,45,.55);display:grid;place-items:center;padding:16px}
+.mbox{background:#fff;border-radius:14px;padding:22px;width:min(440px,100%);box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.mbox h2{font-size:22px;color:var(--navy);margin-bottom:6px}
+.mbox p{margin:0;color:var(--muted);font-size:15px}
+.mbox label{display:block;font-weight:600;font-size:15px;margin-top:14px}
+.mbox input{display:block;width:100%;margin-top:4px;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit;font-size:17px;color:var(--ink);background:#fbfcfe}
+.mbox input:focus{outline:none;border-color:var(--navy);background:#fff}
+.merr{color:var(--bad)!important;min-height:1.3em;font-size:14px!important;margin:10px 0 6px!important}
+.mbox .btn{width:100%;padding:11px;font-size:16px}
+.iconbtn.go{background:#7fd6c2;color:#0d3a33;border-color:#7fd6c2;font-weight:700}
+.syncTxt{font-size:12.5px;opacity:.85;white-space:nowrap}
+.syncTxt.err{color:#ffd2d5;opacity:1}
+@media (max-width:860px){.syncTxt{display:none}}
+
+@media (max-width:1100px){
+  .pair{grid-template-columns:minmax(0,1fr)}
+  .chartcard{position:relative;top:auto}
+  .theory,.intro{grid-template-columns:1fr}
+}
+@media (max-width:860px){
+  .wrap{grid-template-columns:1fr}
+  nav.side{position:fixed;inset:0 auto 0 0;width:min(300px,86vw);max-height:none;z-index:40;border-radius:0;transform:translateX(-105%);transition:transform .25s;padding-top:calc(env(safe-area-inset-top,0px) + 12px);padding-left:max(10px,env(safe-area-inset-left,0px))}
+  nav.side.open{transform:none;box-shadow:0 0 0 100vmax rgba(10,20,40,.35)}
+  .navtoggle{display:inline-flex}
+  .top .sub{display:none}
+  .pager button{max-width:100%;width:100%}
+  .map{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <button class="iconbtn navtoggle" id="navBtn" aria-label="Mở danh sách bài"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M2 8h12M2 12h12"/></svg>Bài học</button>
+  <div><h1>Writing Task 1 · Dynamic Charts Revision</h1><div class="sub">Tự ôn các cấu trúc câu mô tả biểu đồ động</div></div>
+  <div class="prog">
+    <div class="bar"><i id="progBar"></i></div><b id="progTxt">0/0</b>
+    <span class="syncTxt" id="syncTxt"></span>
+    <button class="iconbtn" id="meBtn" aria-label="Đổi tên học sinh"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 14.5c.6-3 3-4.5 6-4.5s5.4 1.5 6 4.5z"/></svg><span id="meLbl">Học sinh</span></button>
+    <button class="iconbtn go" id="submitBtn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8l12-5-5 12-2-5z"/></svg>Nộp bài</button>
+    <button class="iconbtn" id="sndBtn" aria-pressed="true" aria-label="Bật/tắt âm thanh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/><path id="sndWave" d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.8a6 6 0 0 1 0 8.4"/></svg><span id="sndLbl">Âm thanh</span></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="side" id="side" aria-label="Các phần"></nav>
+  <main id="main"></main>
+</div>
+<div class="tip" id="tip"></div>
+<div class="modal" id="who" hidden><div class="mbox" role="dialog" aria-labelledby="whoH">
+  <h2 id="whoH">Thông tin học sinh</h2><p>Nhập đúng họ tên và lớp để thầy nhận được bài làm.</p>
+  <label>Họ và tên<input id="whoName" autocomplete="name"></label>
+  <label>Lớp<input id="whoCls"></label>
+  <p class="merr" id="whoErr"></p>
+  <button class="btn" id="whoOk">Bắt đầu</button>
+</div></div>
+
+<script>
+/* ============ DATA ============ */
+const COLORS=['#1f3a68','#c8323c','#14806f','#b9790a'];
+const DASH=['', '7 5', '2 4', '10 4 2 4'];
+
+const CHARTS={
+ aus:{type:'line',title:'Australian exports to 4 countries',prompt:'The graph below shows the percentage of Australian exports to 4 countries from 1990 to 2012.',
+  unit:'%',x:[1990,1995,2000,2005,2010,2012],yMax:30,yStep:5,yLabel:'%',src:'Biểu đồ trong phiếu học',
+  series:[{n:'Japan',d:[26,20,19,19,17,17]},{n:'US',d:[11,8,11,8,5,7]},{n:'China',d:[2,3,5,12.5,25,27]},{n:'India',d:[1,1,1,5,7,5]}]},
+ asia:{type:'line',title:'Urban population in four Asian countries',prompt:'The graph below gives information about the percentage of the population in four Asian countries living in cities from 1970 to 2020, with predictions for 2030 and 2040.',
+  unit:'%',x:[1970,1980,1990,2000,2010,2020,2030,2040],proj:6,yMax:90,yStep:10,yLabel:'%',src:'Đề forecast 2026 (Cambridge 18 Test 1)',
+  series:[{n:'Malaysia',d:[34,42,50,62,71,77,82,85]},{n:'Philippines',d:[33,38,48,48,46,49,57,65]},{n:'Thailand',d:[20,23,27,30,34,38,42,45]},{n:'Indonesia',d:[15,18,24,33,40,52,60,65]}]},
+ aged:{type:'line',title:'Population aged 65 and over',prompt:'The graph below shows the proportion of the population aged 65 and over between 1940 and 2040 in three different countries.',
+  unit:'%',x:[1940,1960,1980,2000,2010,2020,2030,2040],proj:6,yMax:30,yStep:5,yLabel:'%',src:'Đề forecast 2026',
+  series:[{n:'USA',d:[9,10,15,14,14,15,19,23]},{n:'Sweden',d:[7,10,13,17,20,18,21,25]},{n:'Japan',d:[5,4,3,7,10,14,20,27]}]},
+ visit:{type:'line',title:'Overseas visitors to the UK by purpose of visit',prompt:'The line graph shows the number of overseas visitors who came to the UK for different purposes between 1989 and 2009.',
+  unit:' million',x:[1989,1994,1999,2004,2009],yMax:10,yStep:2,yLabel:'millions',src:'Đề forecast 2026',
+  series:[{n:'Holiday',d:[6.5,7.5,9.5,7.5,8.8]},{n:'Business',d:[5.5,4,6,7,8]},{n:'Visiting friends & relatives',d:[3.5,4.2,5,6.8,6.2]}]},
+ crime:{type:'line',title:'Crime in Newport city centre',prompt:'The chart below shows the changes that took place in three areas of crime in Newport city centre from 2003 to 2012.',
+  unit:' cases',x:[2003,2004,2006,2008,2010,2012],yMax:4000,yStep:1000,yLabel:'cases',src:'Đề forecast 2026',
+  series:[{n:'Burglary',d:[3400,3600,2300,1400,1100,1300]},{n:'Car theft',d:[3800,3500,2700,2200,2400,2000]},{n:'Robbery',d:[800,600,700,1000,1100,1400]}]},
+ japan:{type:'bar',title:"Japan's population by age group",prompt:"The chart below shows Japan's population by age groups starting in 1960 and including a forecast to 2040.",
+  unit:'%',x:[1960,1980,2000,2020,2040],proj:4,yMax:80,yStep:10,yLabel:'% of population',src:'Đề forecast 2026',
+  series:[{n:'0–14',d:[30,24,15,12,11]},{n:'15–64',d:[64,67,68,59,53]},{n:'65+',d:[6,9,17,29,36]}]},
+ phone:{type:'line',title:'Phone subscriptions in Africa',prompt:'The line graph below shows the percentage of people in Africa subscribing to mobile and fixed line phones from 1994 to 2004.',
+  unit:'%',x:[1994,1996,1998,2000,2002,2004],yMax:10,yStep:2,yLabel:'% of population',src:'Đề forecast 2026',
+  series:[{n:'Fixed line',d:[1.5,1.8,2.1,2.5,2.8,3]},{n:'Mobile',d:[0.1,0.3,0.8,2,4.5,9]}]},
+ anx:{type:'line',title:'High levels of anxiety by age group',prompt:'The graph below shows the percentage of people in a European country reporting high levels of anxiety, by age group, between 2000 and 2020.',
+  unit:'%',x:[2000,2005,2010,2015,2020],yMax:30,yStep:5,yLabel:'%',src:'Đề forecast 2026',
+  series:[{n:'16–24',d:[12,15,19,26,22]},{n:'25–44',d:[15,17,16,13,14]},{n:'45 and over',d:[10,10,11,12,12]}]},
+ recy:{type:'line',title:'Household recycling rates',prompt:'The line graph provides information about the percentage of household waste recycled in the UK, France and Germany between 2000 and 2015.',
+  unit:'%',x:[2000,2003,2006,2009,2012,2015],yMax:70,yStep:10,yLabel:'%',src:'Đề forecast 2026',
+  series:[{n:'Germany',d:[45,50,57,62,64,66]},{n:'France',d:[18,22,28,33,38,40]},{n:'UK',d:[8,12,20,30,38,43]}]},
+ oil:{type:'line',title:'Oil consumption of four major consumers',prompt:'The graph below shows information about the total oil consumption of four major consumers from 2009 to 2030.',
+  unit:' m barrels/day',x:[2009,2015,2020,2025,2030],proj:2,yMax:20,yStep:4,yLabel:'million barrels per day',src:'Đề forecast 2026',
+  series:[{n:'US',d:[18.7,19,18.6,18.2,17.8]},{n:'EU',d:[14,13.2,12.6,12.2,11.8]},{n:'China',d:[8.6,10.5,12.6,14.3,16]},{n:'India',d:[3.1,3.8,4.6,5.5,6.6]}]}
+};
+
+/* regex helpers */
+const N=s=>new RegExp('(?<![\\d.])'+s.replace(/\./g,'\\.')+'(?![\\d])');
+const UP=/\b(rose|risen|rise|rising|increased?|increasing|grew|grown|grow|growing|climbed?|climbing|surged?|surging|soared?|soaring|rocketed|jumped|went up|recovered|rebounded)\b/;
+const DOWN=/\b(fell|fallen|fall|falling|declined?|declining|decreased?|decreasing|dropped|drop|dropping|dipped|dip|plummeted|plunged|went down|shrank)\b/;
+const FLAT=/\b(remained|remain|stayed|stay|levelled|leveled|level(l)?ed off|stable|unchanged|constant|plateaued|steady)\b/;
+const R=(label,re)=>({label,re});
+
+/* sections */
+const S=[];
+S.push({id:'start',code:'0',grp:'Bắt đầu',name:'Cách học trang này',kind:'intro'});
+
+S.push({id:'c1',code:'C1',grp:'c. Cấu trúc cần dùng',name:'Đối tượng làm chủ ngữ',
+ sub:'Đưa thẳng tên đối tượng (quốc gia, nhóm tuổi, loại hàng…) lên đầu câu rồi nói nó tăng/giảm thế nào.',
+ formula:[['k-s','Đối tượng'],['k-v','V xu hướng'],['k-x','(adv)'],['k-n','from … to / to + số'],['k-t','mốc thời gian']],
+ ex:['<em>China\'s imports</em> rose steadily to 5% by 2000.','<em>Japan</em> fell sharply from 26% to 20% between 1990 and 1995.'],
+ notes:`<b>Lưu ý:</b> rise, fall, increase, decrease là <b>nội động từ</b> nên không có bị động.
+ <div class="wrongright"><span class="x">Sai</span><span><s>China's imports was increased to 5%.</s></span><span class="o">Đúng</span><span>China's imports increased to 5%.</span></div>
+ Năm dự đoán (2030, 2040) thì dùng <b>is expected / predicted / projected to + V</b>.`,
+ aus:[
+  {cue:'Mô tả <b>China</b> từ 1990 đến 2000 (đoạn tăng chậm).',stem:"By 2000, China's imports ",hl:[[2,0,2]],
+   reqs:[R('Có động từ tăng (rose, increased, climbed…)',UP),R('Có số liệu 5%',N('5'))],
+   hint:'Tăng chậm, đều: rose steadily / increased gradually.',models:["By 2000, China's imports had risen gradually to 5%."]},
+  {cue:'Mô tả <b>China</b> 10 năm tiếp theo (2000 → 2010), đoạn tăng vọt.',stem:'After 10 years, ',hl:[[2,2,4]],
+   reqs:[R('Chủ ngữ là China / China\'s imports / they',/after (10|ten) years,?\s*(china|they|its|the chinese)/),R('Có động từ tăng mạnh (surged, soared, rose sharply…)',/(surged|soared|rocketed|(rose|increased|grew|climbed)\s+(sharply|dramatically|significantly|considerably|rapidly|substantially))/),R('Có số liệu 25%',N('25'))],
+   hint:'Tăng rất mạnh: surged / soared / rose dramatically.',models:["After 10 years, China's imports surged to 25% in 2010.","After 10 years, they rose dramatically to a quarter of all exports (25%)."]},
+  {cue:'Mô tả <b>Japan</b> giai đoạn 1990 → 1995.',stem:'Japan ',hl:[[0,0,1]],
+   reqs:[R('Có động từ giảm',DOWN),R('Có 26%',N('26')),R('Có 20%',N('20'))],
+   hint:'from … to … : fell from 26% to 20%.',models:['Japan fell sharply from 26% to 20% between 1990 and 1995.']}
+ ],
+ fc:'asia',
+ tasks:[
+  {cue:'<b>Malaysia</b> từ 1970 đến 2000.',hl:[[0,0,3]],
+   reqs:[R('Câu bắt đầu bằng Malaysia (đối tượng làm chủ ngữ)',/^(malaysia|the urban population of malaysia|malaysia's)/),R('Có động từ tăng',UP),R('Có 34%',N('34')),R('Có 62%',N('62'))],
+   hint:'Malaysia + rose steadily + from …% in 1970 + to …% in 2000.',models:["Malaysia's urban population rose steadily from 34% in 1970 to 62% in 2000."]},
+  {cue:'<b>The Philippines</b> từ 1990 đến 2010 (gần như đi ngang).',hl:[[1,2,4]],
+   reqs:[R('Câu bắt đầu bằng The Philippines',/^(the philippines|philippines)/),R('Có từ chỉ ổn định (remained, stayed, levelled off…)',FLAT),R('Có số liệu khoảng 46–48%',/(?<![\d.])4[678](?![\d])/)],
+   hint:'remained relatively stable at around …%',models:['The Philippines remained relatively stable at around 47% between 1990 and 2010.']},
+  {cue:'<b>Thailand</b> 2020 → 2040 (năm dự đoán).',hl:[[2,5,7]],
+   reqs:[R('Câu bắt đầu bằng Thailand',/^thailand/),R('Dùng thì tương lai / dự đoán (is expected to, is predicted to, will…)',/(is|are)\s+(expected|predicted|projected|forecast|set)\s+to|\bwill\b/),R('Có 45%',N('45'))],
+   hint:'Thailand is predicted to rise to …% by 2040.',models:['Thailand is predicted to rise gradually from 38% in 2020 to 45% by 2040.']}
+ ]});
+
+S.push({id:'c2',code:'C2',grp:'c. Cấu trúc cần dùng',name:'The figure… làm chủ ngữ',
+ sub:'Dùng một cụm danh từ "chỉ số liệu" làm chủ ngữ. Cách này giúp đổi cách diễn đạt, tránh lặp tên đối tượng.',
+ formula:[['k-s','The figure for / The percentage of / The amount of + đối tượng'],['k-v','V xu hướng'],['k-n','to + số'],['k-t','thời gian']],
+ ex:['<em>The figure for Australia\'s exports to Japan</em> had fallen to 17% by the end of the period.','<em>The proportion of exports to India</em> remained unchanged at 1% until 2000.'],
+ notes:`<b>Chọn đúng danh từ:</b>
+ <table class="vt" style="margin-top:6px"><tr><th>Đơn vị trên trục</th><th>Dùng</th></tr>
+ <tr><td>%</td><td>the percentage / proportion / share of …</td></tr>
+ <tr><td>người, vật đếm được</td><td>the number of visitors / cases</td></tr>
+ <tr><td>không đếm được (oil, money, water)</td><td>the amount of oil</td></tr>
+ <tr><td>dùng được cho mọi loại</td><td>the figure for …</td></tr></table>
+ <div class="wrongright" style="margin-top:8px"><span class="x">Sai</span><span><s>the number of oil</s></span><span class="o">Đúng</span><span>the amount of oil</span></div>`,
+ aus:[
+  {cue:'<b>India</b> 1990 → 2000 (đi ngang).',stem:"By 2000, the amount of Australia's exports to India ",hl:[[3,0,2]],
+   reqs:[R('Có từ chỉ ổn định (remained, stayed…)',FLAT),R('Có 1%',N('1'))],
+   hint:'remained unchanged at …% / stayed the same at …%',models:["By 2000, the amount of Australia's exports to India had remained unchanged at 1%."]},
+  {cue:'<b>Japan</b> cả giai đoạn.',stem:"By the end of the period, the figure for Australia's exports to Japan ",hl:[[0,0,5]],
+   reqs:[R('Có động từ giảm',DOWN),R('Có 17%',N('17'))],
+   hint:'had fallen to …%',models:["By the end of the period, the figure for Australia's exports to Japan had fallen to 17%."]}
+ ],
+ fc:'aged',
+ tasks:[
+  {cue:'<b>USA</b> 1940 → 1980.',hl:[[0,0,2]],
+   reqs:[R('Chủ ngữ là The proportion / percentage / figure …',/^(the\s+(proportion|percentage|figure|share|number))/),R('Có USA / US / America',/\b(usa|us|united states|america|american)\b/),R('Có 9%',N('9')),R('Có 15%',N('15'))],
+   hint:'The proportion of elderly people in the USA rose from …',models:['The proportion of people aged 65 and over in the USA rose from 9% in 1940 to 15% in 1980.']},
+  {cue:'<b>Japan</b> 1940 → 1980 (giảm nhẹ).',hl:[[2,0,2]],
+   reqs:[R('Chủ ngữ là The figure for Japan / The percentage … in Japan',/^the\s+(figure|percentage|proportion|share)\b.*japan/),R('Có động từ giảm',DOWN),R('Có 5%',N('5')),R('Có 3%',N('3'))],
+   hint:'The figure for Japan dipped slightly from …% to …%',models:['The figure for Japan dipped slightly from 5% in 1940 to just 3% in 1980.']},
+  {cue:'<b>Sweden</b> 2010 → 2020.',hl:[[1,4,5]],
+   reqs:[R('Chủ ngữ là The proportion / figure …',/^the\s+(figure|percentage|proportion|share)/),R('Có Sweden',/sweden|swedish/),R('Có 20%',N('20')),R('Có 18%',N('18'))],
+   hint:'The share of elderly people in Sweden reached …% in 2010, then …',models:['The share of elderly people in Sweden reached 20% in 2010, before dipping slightly to 18% in 2020.']}
+ ]});
+
+S.push({id:'c3',code:'C3',grp:'c. Cấu trúc cần dùng',name:'Thời gian làm chủ ngữ',
+ sub:'Đưa mốc thời gian lên làm chủ ngữ với witnessed / saw, rồi thêm số liệu bằng "with the figure + V-ing".',
+ formula:[['k-t','The year 2010 / The period 2000–2010'],['k-v','witnessed / saw'],['k-x','a/an + adj + N (increase, fall…) + in + đối tượng'],['k-n',', with the figure + V-ing + số']],
+ ex:['<em>The year 2010 witnessed</em> an increase in exports to India, <em>with the figure rising</em> to 7%.','<em>The 1990s saw</em> a sharp drop in exports to Japan.'],
+ notes:`<b>Hai lỗi hay gặp:</b>
+ <div class="wrongright"><span class="x">Sai</span><span><s>In 2010 witnessed an increase …</s></span><span class="o">Đúng</span><span>2010 witnessed / The year 2010 witnessed … (không có "In")</span>
+ <span class="x">Sai</span><span><s>…, with the figure rose to 7%.</s></span><span class="o">Đúng</span><span>…, with the figure rising to 7%.</span></div>`,
+ aus:[
+  {cue:'<b>India</b> năm 2010.',stem:'The year 2010 witnessed an increase in ',hl:[[3,3,4]],
+   reqs:[R('Có India',/india/),R('Có "with the figure + V-ing"',/with the (figure|percentage|proportion|share)\s+\w+ing\b/),R('Có 7%',N('7'))],
+   hint:'… exports to India, with the figure rising to …%',models:['The year 2010 witnessed an increase in exports to India, with the figure rising to 7%.']},
+  {cue:'<b>Japan</b> năm 2012.',stem:'The year 2012 ',hl:[[0,4,5]],
+   reqs:[R('Có witnessed / saw',/\b(witnessed|saw)\b/),R('Có Japan',/japan/),R('Có 17%',N('17'))],
+   hint:'Japan không đổi: The year 2012 saw no change in …, with the figure remaining at …%',models:['The year 2012 saw no change in the proportion of exports to Japan, with the figure remaining at 17%.']}
+ ],
+ fc:'visit',
+ tasks:[
+  {cue:'Năm <b>1999</b> – khách đi <b>Holiday</b>.',hl:[[0,1,2]],
+   reqs:[R('Thời gian làm chủ ngữ + witnessed/saw',/^(the year\s+)?1999\s+(witnessed|saw)/),R('Có "with the figure + V-ing"',/with the (figure|number)\s+\w+ing\b/),R('Có 9.5 million',N('9.5'))],
+   hint:'The year 1999 witnessed a rise in the number of holidaymakers, with the figure …',models:['The year 1999 witnessed a rise in the number of holidaymakers, with the figure reaching a peak of 9.5 million.']},
+  {cue:'Năm <b>1994</b> – khách <b>Business</b>.',hl:[[1,0,1]],
+   reqs:[R('Thời gian làm chủ ngữ + witnessed/saw',/^(the year\s+)?1994\s+(witnessed|saw)/),R('Có "with the figure + V-ing"',/with the (figure|number)\s+\w+ing\b/),R('Có 4 million',/(?<![\d.])4(\.0)?(?![\d])/)],
+   hint:'1994 saw a drop in …, with the figure falling to …',models:['The year 1994 saw a drop in the number of business visitors, with the figure falling to 4 million.']},
+  {cue:'Năm <b>2004</b> – khách <b>thăm người thân</b>.',hl:[[2,2,3]],
+   reqs:[R('Thời gian làm chủ ngữ + witnessed/saw',/^(the year\s+)?2004\s+(witnessed|saw)/),R('Có 6.8 million',N('6.8'))],
+   hint:'2004 witnessed a peak in …, at … million.',models:['The year 2004 witnessed a peak in the number of people visiting friends and relatives, with the figure reaching 6.8 million.']}
+ ]});
+
+S.push({id:'c4',code:'C4',grp:'c. Cấu trúc cần dùng',name:'Lượng thay đổi làm chủ ngữ',
+ sub:'Đưa "một mức giảm/tăng bao nhiêu" lên đầu câu, rồi dùng was recorded / was seen.',
+ formula:[['k-x','A/An + (adj) + increase / decrease'],['k-n','of + lượng thay đổi'],['k-v','was recorded / was seen'],['k-s','in + đối tượng'],['k-n',', with the figure + V-ing …']],
+ ex:['<em>A decrease of 2 percentage points was recorded in</em> exports to India between 2010 and 2012, with the figure falling to 5%.'],
+ notes:`<b>"of" + lượng chênh lệch</b>, không phải con số cuối.
+ India: 7% → 5% nên lượng giảm là <b>2 percentage points</b> (2 điểm phần trăm).
+ <div class="wrongright"><span class="x">Sai</span><span><s>A decrease of 5% was recorded …</s> (5% là số cuối)</span><span class="o">Đúng</span><span>A decrease of 2 percentage points …, with the figure falling to 5%.</span></div>`,
+ aus:[
+  {cue:'<b>India</b> 2010 → 2012.',stem:'A decrease of ',hl:[[3,4,5]],
+   reqs:[R('Lượng giảm là 2 (points)',/decrease of (2|two)\b/),R('Có "was recorded in / was seen in"',/was\s+(recorded|seen|witnessed|registered)\s+in/),R('Có India',/india/),R('Có 5% (số cuối)',N('5'))],
+   hint:'… 2 percentage points was recorded in exports to India …, with the figure falling to 5%.',models:['A decrease of 2 percentage points was recorded in exports to India between 2010 and 2012, with the figure falling to 5%.']},
+  {cue:'<b>Japan</b> 1990 → 1995. <span class="use">phiếu ghi 1997, biểu đồ có mốc 1995</span>',stem:'By 1995, a pronounced ',hl:[[0,0,1]],
+   reqs:[R('Có fall/drop/decline/decrease of 6',/(fall|drop|decline|decrease|reduction)\s+of\s+(around\s+|about\s+|roughly\s+)?(6|six)\b/),R('Có was recorded / was seen',/was\s+(recorded|seen|witnessed|registered)/),R('Có Japan',/japan/),R('Có 20%',N('20'))],
+   hint:'26% → 20%: lượng giảm = 6 percentage points.',models:['By 1995, a pronounced fall of 6 percentage points was recorded in exports to Japan, with the figure dropping to 20%.']}
+ ],
+ fc:'crime',
+ tasks:[
+  {cue:'<b>Burglary</b> 2004 → 2008.',hl:[[0,1,3]],
+   reqs:[R('Bắt đầu bằng A/An … decrease/fall/drop of',/^an?\s+(\w+\s+)?(decrease|decline|drop|fall|reduction)\s+of/),R('Lượng giảm 2,200',N('2200')),R('Có was recorded / was seen',/was\s+(recorded|seen|witnessed|registered)/),R('Có 1,400 (số cuối)',N('1400'))],
+   hint:'3,600 → 1,400: lượng giảm = 2,200 cases.',models:['A significant decrease of 2,200 cases was recorded in burglaries between 2004 and 2008, with the figure falling to 1,400.']},
+  {cue:'<b>Robbery</b> 2004 → 2012.',hl:[[2,1,5]],
+   reqs:[R('Bắt đầu bằng An increase/A rise of',/^an?\s+(\w+\s+)?(increase|rise|growth|jump)\s+of/),R('Lượng tăng 800',N('800')),R('Có was recorded / was seen',/was\s+(recorded|seen|witnessed|registered)/),R('Có 1,400',N('1400'))],
+   hint:'600 → 1,400: lượng tăng = 800 cases.',models:['An increase of 800 cases was seen in robberies from 2004 to 2012, with the number reaching 1,400.']},
+  {cue:'<b>Car theft</b> cả giai đoạn 2003 → 2012.',hl:[[1,0,5]],
+   reqs:[R('Bắt đầu bằng A/An … of',/^an?\s+(\w+\s+)?(decrease|decline|drop|fall|reduction)\s+of/),R('Lượng giảm 1,800',N('1800')),R('Có car theft',/car\s*theft|cars? (were )?stolen/)],
+   hint:'3,800 → 2,000',models:['An overall decline of 1,800 cases was recorded in car theft over the period, with the figure ending at 2,000 in 2012.']}
+ ]});
+
+S.push({id:'c5',code:'C5',grp:'c. Cấu trúc cần dùng',name:'Danh từ hoá',
+ sub:'Biến động từ thành danh từ: increased slightly → a slight increase. Tính từ đứng trước danh từ.',
+ formula:[['k-v','There was'],['k-x','a/an + ADJ + NOUN'],['k-s','in + đối tượng'],['k-n',', with the figure being / reaching + số']],
+ ex:['By 1995, <em>there was a slight increase in</em> exports to China, <em>with the figure being</em> 3%.','Exports to the US and Japan <em>experienced a decrease</em> over the period.'],
+ notes:`<b>Đổi trạng từ → tính từ:</b>
+ <table class="vt" style="margin-top:6px"><tr><th>Động từ + trạng từ</th><th>Danh từ hoá</th></tr>
+ <tr><td>increased slightly</td><td>a slight increase</td></tr>
+ <tr><td>fell sharply</td><td>a sharp fall</td></tr>
+ <tr><td>rose dramatically</td><td>a dramatic rise</td></tr>
+ <tr><td>declined gradually</td><td>a gradual decline</td></tr></table>
+ <div class="wrongright" style="margin-top:8px"><span class="x">Sai</span><span><s>there was slightly decrease</s></span><span class="o">Đúng</span><span>there was a slight decrease</span></div>`,
+ aus:[
+  {cue:'<b>India</b> 2000 → 2005.',stem:'By 2005, there was ',hl:[[3,2,3]],
+   reqs:[R('Có a/an + (adj) + increase/rise',/there was an?\s+(\w+\s+)?(increase|rise|growth|jump)/),R('Có India',/india/),R('Có 5%',N('5'))],
+   hint:'a significant increase in exports to India, with the figure being 5%.',models:['By 2005, there was a significant increase in exports to India, with the figure being 5%.']},
+  {cue:'<b>US</b> 2000 → 2005.',stem:'Between 2000 and 2005, there was ',hl:[[1,2,3]],
+   reqs:[R('Có a/an + (adj) + decrease/fall',/there was an?\s+(\w+\s+)?(decrease|decline|drop|fall|dip)/),R('Có US',/\b(us|usa|united states|america)\b/),R('Có 8%',N('8'))],
+   hint:'11% → 8%: a moderate decrease',models:['Between 2000 and 2005, there was a moderate decrease in exports to the US, with the figure dropping to 8%.']}
+ ],
+ fc:'japan',
+ tasks:[
+  {cue:'Nhóm <b>65+</b> từ 1960 đến 2000.',hl:[[2,0,2]],
+   reqs:[R('Có There was a/an + (adj) + increase/rise',/there was an?\s+(\w+\s+)?(increase|rise|growth|jump)/),R('Có 6%',N('6')),R('Có 17%',N('17'))],
+   hint:'There was a substantial increase in the proportion of people aged 65 and over, from …',models:['There was a substantial increase in the proportion of people aged 65 and over, from 6% in 1960 to 17% in 2000.']},
+  {cue:'Nhóm <b>15–64</b> từ 1960 đến 2000.',hl:[[1,0,2]],
+   reqs:[R('Có There was a slight/small/marginal increase',/there was an?\s+(slight|small|marginal|minor|modest)\s+(increase|rise|growth)/),R('Có 68%',N('68'))],
+   hint:'64% → 68% là tăng nhẹ.',models:['There was a slight increase in the share of working-age people, with the figure being 68% in 2000.']},
+  {cue:'Nhóm <b>0–14</b> từ 2020 đến 2040 (dự đoán).',hl:[[0,3,4]],
+   reqs:[R('Có There is expected/predicted to be … / There will be …',/there\s+(is|are)\s+(expected|predicted|projected|forecast|set|likely)\s+to\s+be|there will be/),R('Có từ giảm dạng danh từ (decline, fall, decrease…)',/\b(decline|fall|decrease|drop|dip|reduction)\b/),R('Có 11%',N('11'))],
+   hint:'There is predicted to be a marginal decline in …, to …% in 2040.',models:['There is predicted to be a marginal decline in the proportion of children aged 0–14, to 11% in 2040.']}
+ ]});
+
+S.push({id:'cmp',code:'SS',grp:'c. Cấu trúc cần dùng',name:'So sánh và đối chiếu',
+ sub:'So sánh hai đối tượng ở cùng một thời điểm, hoặc đối chiếu hai xu hướng ngược nhau.',
+ formula:[['k-s','A'],['k-v','was higher/lower than · exceeded · surpassed · remained above/below'],['k-s','B'],['k-x','While / Whereas / In contrast']],
+ ex:['<em>Japan remained above</em> the US throughout the period.','<em>While</em> exports to China rose dramatically, those to Japan declined.'],
+ notes:`<b>Dùng "that of / those of"</b> để không lặp danh từ: The figure for China was higher than <b>that of</b> Japan.
+ <br><b>surpass / overtake</b> = vượt qua (lúc trước thấp hơn, sau cao hơn).`,
+ aus:[
+  {cue:'So sánh <b>Japan</b> và <b>US</b> suốt giai đoạn.',hl:[[0,0,5],[1,0,5]],
+   reqs:[R('Có remained above / was higher than / exceeded',/(remained|stayed|was|were)\s+(consistently\s+)?(above|higher than|greater than)|exceeded|outnumbered/),R('Có Japan và US',/japan.*\b(us|usa)\b|\b(us|usa)\b.*japan/)],
+   hint:'Japan remained above the US throughout the period.',models:['Japan remained above the US throughout the period.']},
+  {cue:'<b>China</b> vượt <b>Japan</b> khoảng năm 2007–2008.',hl:[[2,3,4],[0,3,4]],
+   reqs:[R('Có surpassed / overtook / exceeded',/(surpassed|overtook|overtaken|exceeded)/),R('Có China và Japan',/china.*japan|japan.*china/)],
+   hint:'China surpassed Japan in around 2008, becoming …',models:["China surpassed Japan in around 2008, becoming Australia's largest export destination."]},
+  {cue:'Đối chiếu xu hướng <b>China</b> (tăng) và <b>Japan</b> (giảm).',hl:[[2,0,5],[0,0,5]],
+   reqs:[R('Có While / Whereas / In contrast',/^(while|whereas)|,\s*(while|whereas)|in contrast|by contrast|on the other hand/),R('Có động từ tăng',UP),R('Có động từ giảm',DOWN)],
+   hint:'While exports to China rose …, those to Japan …',models:['While exports to China rose dramatically, those to Japan declined steadily.']}
+ ],
+ fc:'phone',
+ tasks:[
+  {cue:'Năm <b>1994</b>: fixed line và mobile.',hl:[[0,0,0],[1,0,0]],
+   reqs:[R('Có higher than / lower than / above',/(higher|lower|greater|smaller)\s+than|above|below|exceeded/),R('Có 1.5%',N('1.5')),R('Có 0.1%',N('0.1'))],
+   hint:'In 1994, the percentage of fixed-line subscribers was higher than that of mobile users, at …',models:['In 1994, the percentage of fixed-line subscribers was higher than that of mobile users, at 1.5% and 0.1% respectively.']},
+  {cue:'<b>Mobile</b> vượt <b>fixed line</b>.',hl:[[1,3,4],[0,3,4]],
+   reqs:[R('Có surpassed / overtook / exceeded',/(surpassed|overtook|overtaken|exceeded)/),R('Có mốc khoảng 2000–2002',/\b(2000|2001|2002)\b/)],
+   hint:'Mobile subscriptions surpassed fixed-line … in around 2001.',models:['Mobile subscriptions surpassed fixed-line subscriptions in around 2001.']},
+  {cue:'Đối chiếu cả giai đoạn: fixed line tăng ít, mobile tăng vọt.',hl:[[0,0,5],[1,0,5]],
+   reqs:[R('Có While / Whereas / In contrast',/^(while|whereas)|,\s*(while|whereas)|in contrast|by contrast/),R('Có 3%',N('3')),R('Có 9%',N('9'))],
+   hint:'While the figure for fixed lines rose only marginally to …, mobile …',models:['While the figure for fixed lines rose only marginally to 3%, mobile subscriptions soared to 9% in 2004.']}
+ ]});
+
+S.push({id:'peak',code:'ĐC',grp:'c. Cấu trúc cần dùng',name:'Điểm cao nhất / thấp nhất',
+ sub:'Mô tả đỉnh (peak) và đáy (low) của đường.',
+ formula:[['k-v','peaked at · reached a peak of · hit the highest point of'],['k-v','fell to a low of · bottomed out at · hit the lowest point of'],['k-n','+ số'],['k-t','in + năm']],
+ ex:["India's share <em>reached a peak of</em> 7% in 2010.",'The figure for the US <em>bottomed out at</em> 5% in 2010.'],
+ notes:`<div class="wrongright"><span class="x">Sai</span><span><s>reached at a peak of 7%</s> · <s>peaked 7%</s></span><span class="o">Đúng</span><span>reached a peak of 7% · peaked at 7%</span></div>`,
+ aus:[
+  {cue:'Đỉnh của <b>India</b>.',hl:[[3,4,4]],
+   reqs:[R('Có peaked at / reached a peak of',/(peaked at|reached a peak of|hit (a|the|its) (peak|highest point))/),R('Có 7%',N('7')),R('Có 2010',/2010/)],
+   hint:"India's share peaked at …",models:["India's share peaked at 7% in 2010."]},
+  {cue:'Đáy của <b>US</b>.',hl:[[1,4,4]],
+   reqs:[R('Có bottomed out at / fell to a low of',/(bottomed out at|(fell|dropped|declined) to a low of|hit (a|the|its) (low|lowest point))/),R('Có 5%',N('5')),R('Có 2010',/2010/)],
+   hint:'The figure for the US bottomed out at …',models:['The figure for the US bottomed out at 5% in 2010.']}
+ ],
+ fc:'anx',
+ tasks:[
+  {cue:'Nhóm <b>16–24</b>: điểm cao nhất.',hl:[[0,3,3]],
+   reqs:[R('Có peaked at / reached a peak of',/(peaked at|reached a peak of|hit (a|the|its) (peak|highest point))/),R('Có 26%',N('26')),R('Có 2015',/2015/)],
+   hint:'The proportion of 16–24-year-olds … peaked at …',models:['The proportion of 16–24-year-olds reporting high anxiety peaked at 26% in 2015.']},
+  {cue:'Nhóm <b>25–44</b>: điểm thấp nhất.',hl:[[1,3,3]],
+   reqs:[R('Có fell to a low of / bottomed out at',/(bottomed out at|(fell|dropped|declined|dipped) to a low of|hit (a|the|its) (low|lowest point))/),R('Có 13%',N('13'))],
+   hint:'The figure for the 25–44 age group fell to a low of …',models:['The figure for the 25–44 age group fell to a low of 13% in 2015.']},
+  {cue:'Nhóm <b>45 and over</b>: luôn thấp nhất.',hl:[[2,0,4]],
+   reqs:[R('Có lowest',/lowest/),R('Có 10%',N('10')),R('Có 12%',N('12'))],
+   hint:'… consistently recorded the lowest figures, at between …',models:['The over-45s consistently recorded the lowest figures, at between 10% and 12%.']}
+ ]});
+
+S.push({id:'sample',code:'B8',grp:'c. Cấu trúc cần dùng',name:'Soi bài mẫu band 8.0',kind:'sample'});
+
+/* D layering */
+S.push({id:'d1',code:'D1',grp:'d. Viết câu theo layers',name:'BEFORE + V-ing',
+ sub:'Nối hai thay đổi liên tiếp trong một câu: thay đổi thứ hai xảy ra sau.',
+ formula:[['k-s','S'],['k-v','V'],['k-n','số / thời gian'],['k-x',', before + V-ing'],['k-n','số / thời gian']],
+ ex:['The unemployment rate stood at 8% in 2010, <em>before falling</em> to 5% in 2015.'],
+ notes:`<div class="wrongright"><span class="x">Sai</span><span><s>…, before rose sharply to 3.5 million.</s></span><span class="o">Đúng</span><span>…, before rising sharply to 3.5 million.</span></div>`,
+ fc:'recy',
+ tasks:[
+  {cue:'<b>UK</b>: 2000 → 2015.',hl:[[2,0,5]],
+   reqs:[R('Có before + V-ing',/before\s+\w+ing\b/),R('Có 8%',N('8')),R('Có 43%',N('43'))],
+   hint:"The UK's recycling rate stood at …% in 2000, before climbing to …",models:["The UK's recycling rate stood at only 8% in 2000, before climbing steadily to 43% in 2015."]},
+  {cue:'<b>Germany</b>: 2000 → 2009 tăng, sau đó gần như đi ngang.',hl:[[0,0,5]],
+   reqs:[R('Có before + V-ing',/before\s+\w+ing\b/),R('Có 62%',N('62')),R('Có số cuối khoảng 64–66%',/(?<![\d.])6[456](?![\d])/)],
+   hint:'… rose to 62% in 2009, before levelling off at around …',models:["Germany's recycling rate rose from 45% to 62% in 2009, before levelling off at around 65% in the final years."]},
+  {cue:'<b>France</b>: 2000 → 2009 → 2015.',hl:[[1,0,5]],
+   reqs:[R('Có before + V-ing',/before\s+\w+ing\b/),R('Có 33%',N('33')),R('Có 40%',N('40'))],
+   hint:'France increased from …% to …% in 2009, before …',models:['France increased from 18% to 33% in 2009, before rising more slowly to 40% in 2015.']}
+ ]});
+
+S.push({id:'d2',code:'D2',grp:'d. Viết câu theo layers',name:'Comparatives (so sánh hơn)',
+ sub:'So sánh 2 số liệu và gắn số vào cuối câu bằng "respectively".',
+ formula:[['k-s','A was higher/lower than B'],['k-n',', at X and Y'],['k-x','respectively'],['k-v','· A experienced a sharper increase than B']],
+ ex:['The figure for France was considerably <em>higher than that for Italy</em>, at 65% and 40%, <em>respectively</em>.'],
+ notes:`<b>respectively</b> = "lần lượt": số thứ nhất của A, số thứ hai của B, đúng thứ tự.
+ <div class="wrongright"><span class="x">Sai</span><span><s>more higher than</s></span><span class="o">Đúng</span><span>higher than / much higher than</span></div>`,
+ fc:'oil',
+ tasks:[
+  {cue:'Năm <b>2009</b>: US và EU.',hl:[[0,0,0],[1,0,0]],
+   reqs:[R('Có more / higher / greater … than',/(more|higher|greater|larger)\b.*\bthan\b/),R('Có respectively',/respectively/),R('Có 18.7',N('18.7')),R('Có 14',N('14'))],
+   hint:'In 2009, the US consumed more oil than the EU, at …',models:['In 2009, the US consumed more oil than the EU, at 18.7 and 14 million barrels per day respectively.']},
+  {cue:'Tốc độ tăng của <b>China</b> so với <b>India</b> (2009 → 2030).',hl:[[2,0,4],[3,0,4]],
+   reqs:[R('Có "a sharper/greater … increase than"',/(sharper|greater|larger|bigger|faster|steeper|more (significant|dramatic|rapid|substantial))\s+(increase|rise|growth)\s+than/),R('Có China và India',/china.*india|india.*china/)],
+   hint:'China is expected to experience a much sharper increase than India.',models:['China is expected to experience a much sharper increase in oil consumption than India.']},
+  {cue:'Năm <b>2030</b>: China và EU.',hl:[[2,4,4],[1,4,4]],
+   reqs:[R('Có higher than / more than',/(higher|greater|larger|more)\b.*\bthan\b/),R('Có respectively',/respectively/),R('Có 16',N('16')),R('Có 11.8',N('11.8'))],
+   hint:"By 2030, China's consumption is predicted to be higher than that of the EU, at …",models:["By 2030, China's consumption is predicted to be higher than that of the EU, at 16 and 11.8 million barrels per day respectively."]}
+ ]});
+
+S.push({id:'d3',code:'D3',grp:'d. Viết câu theo layers',name:'FOLLOWED BY',
+ sub:'Xếp hạng: nêu cái cao nhất trước, các cái sau nối bằng "followed by".',
+ formula:[['k-s','A'],['k-v','was the highest / recorded the highest'],['k-n',', at X'],['k-x',', followed by B (at Y) and C (at Z)']],
+ ex:['Germany recorded the highest percentage, at 72%, <em>followed by</em> France at 65%.'],
+ notes:`Nguyên tắc trong phiếu: <b>từ LỚN đến bé</b>. Câu mở đầu đoạn thân bài thường dùng cấu trúc này cho năm đầu tiên.`,
+ fc:'aged',
+ tasks:[
+  {cue:'Năm <b>1940</b>: xếp hạng 3 nước.',hl:[[0,0,0],[1,0,0],[2,0,0]],
+   reqs:[R('Có followed by',/followed by/),R('Có 9%',N('9')),R('Có 7%',N('7')),R('Có 5%',N('5')),R('USA đứng đầu câu',/^(in 1940,?\s*)?(the\s+)?(usa|us|united states|america)/)],
+   hint:'In 1940, the USA had the highest proportion …, at 9%, followed by …',models:['In 1940, the USA had the highest proportion of elderly people, at 9%, followed by Sweden and Japan, at 7% and 5% respectively.']},
+  {cue:'Năm <b>2040</b> (dự đoán): xếp hạng 3 nước.',hl:[[0,7,7],[1,7,7],[2,7,7]],
+   reqs:[R('Có followed by',/followed by/),R('Có 27%',N('27')),R('Có 25%',N('25')),R('Có 23%',N('23')),R('Japan đứng đầu câu',/^(by 2040,?\s*|in 2040,?\s*)?japan/)],
+   hint:'By 2040, Japan is expected to have the highest …, at 27%, followed by …',models:['By 2040, Japan is expected to have the highest proportion, at 27%, followed by Sweden (25%) and the USA (23%).']}
+ ]});
+
+S.push({id:'d4',code:'D4',grp:'d. Viết câu theo layers',name:'HAVING + V3',
+ sub:'Nối một thay đổi đã xong (thường là đỉnh/đáy) với thay đổi tiếp theo.',
+ formula:[['k-x','Having + V3 (peaked / reached / risen / fallen)'],['k-n','… số, thời gian'],['k-s',', S'],['k-v','+ V …']],
+ ex:['<em>Having reached a peak of 80%</em> in 2015, the figure fell sharply to 50% in 2020.'],
+ notes:`<b>V3 bất quy tắc hay gặp:</b> rise → risen · fall → fallen · grow → grown.
+ <div class="wrongright"><span class="x">Sai</span><span><s>Having rose to …</s> · <s>Having peak at …</s></span><span class="o">Đúng</span><span>Having risen to … · Having peaked at …</span></div>`,
+ fc:'visit',
+ tasks:[
+  {cue:'<b>Holiday</b>: đỉnh 1999, rồi giảm.',hl:[[0,2,3]],
+   reqs:[R('Bắt đầu bằng Having + V3',/^having\s+(\w+ed|risen|fallen|grown|hit|reached)\b/),R('Có 9.5',N('9.5')),R('Có 7.5',N('7.5'))],
+   hint:'Having peaked at 9.5 million in 1999, the number of …',models:['Having peaked at 9.5 million in 1999, the number of holiday visitors fell to 7.5 million in 2004.']},
+  {cue:'<b>Business</b>: đáy 1994, rồi tăng đều.',hl:[[1,1,4]],
+   reqs:[R('Bắt đầu bằng Having + V3',/^having\s+(\w+ed|risen|fallen|grown|hit|reached)\b/),R('Có 4 million',/(?<![\d.])4(\.0)?(?![\d])/),R('Có 8 million',/(?<![\d.])8(\.0)?(?![\d])/)],
+   hint:'Having dropped to 4 million in 1994, …',models:['Having dropped to 4 million in 1994, the number of business visitors recovered steadily to 8 million in 2009.']},
+  {cue:'<b>Visiting friends & relatives</b>: 2004 → 2009.',hl:[[2,3,4]],
+   reqs:[R('Bắt đầu bằng Having + V3',/^having\s+(\w+ed|risen|fallen|grown|hit|reached)\b/),R('Có 6.8',N('6.8')),R('Có 6.2',N('6.2'))],
+   hint:'Having reached a high of 6.8 million in 2004, …',models:['Having reached a high of 6.8 million in 2004, visits to friends and relatives fell slightly to 6.2 million in 2009.']}
+ ]});
+
+/* Practices from worksheet */
+const BEF=R('Có before + V-ing',/before\s+\w+ing\b/), HAV=R('Có Having + V3',/having\s+(\w+ed|risen|fallen|grown|hit|reached)\b/), FOL=R('Có followed by',/followed by/), RES=R('Có respectively',/respectively/), THN=R('Có so sánh … than',/(higher|lower|more|less|greater|larger)\b.*\bthan\b/);
+S.push({id:'practice',code:'P',grp:'d. Viết câu theo layers',name:'Practice 1–5 trong phiếu',kind:'practice',parts:[
+ {h:'Practice 1 – Complete the sentences',d:'Hoàn thành câu theo cấu trúc trong ngoặc.',tasks:[
+  {cue:'The number of visitors was 2 million in 2010. It then increased to 3.5 million in 2015. <span class="use">before</span>',stem:'The number of visitors stood at ',reqs:[BEF,R('Có 2 million',N('2')),R('Có 3.5 million',N('3.5'))],models:['The number of visitors stood at 2 million in 2010, before increasing to 3.5 million in 2015.']},
+  {cue:'Car ownership was 65% in the UK and 48% in France. <span class="use">comparative</span>',stem:'Car ownership in the UK was ',reqs:[THN,R('Có France',/france/),R('Có 65% và 48%',/65.*48/),RES],models:['Car ownership in the UK was higher than that in France, at 65% and 48% respectively.']},
+  {cue:'Canada had the highest figure at 75%. Australia came next at 68%. <span class="use">followed by</span>',stem:'Canada recorded ',reqs:[FOL,R('Có 75%',N('75')),R('Có Australia 68%',/australia.*68|68.*australia/)],models:['Canada recorded the highest figure, at 75%, followed by Australia at 68%.']},
+  {cue:'The figure increased to a peak of 90 in 2015. It then fell to 60 in 2020. <span class="use">having</span>',stem:'Having ',reqs:[HAV,R('Có 90',N('90')),R('Có 60',N('60'))],models:['Having reached a peak of 90 in 2015, the figure fell to 60 in 2020.']}
+ ]},
+ {h:'Practice 2 – Combine the sentences',d:'Gộp mỗi cặp câu thành MỘT câu phức.',tasks:[
+  {cue:'The percentage was 25% in 2000. It rose to 40% in 2010.',reqs:[R('Một câu có before + V-ing hoặc Having + V3',/before\s+\w+ing\b|having\s+(\w+ed|risen|fallen|grown|reached)/),R('Có 25%',N('25')),R('Có 40%',N('40'))],models:['The percentage stood at 25% in 2000, before rising to 40% in 2010.']},
+  {cue:'The average salary for engineers was $60,000. The average salary for teachers was $45,000.',reqs:[THN,R('Có 60,000 và 45,000',/60000.*45000/),RES],models:['The average salary for engineers was higher than that for teachers, at $60,000 and $45,000 respectively.']},
+  {cue:'Japan spent $500 per person. The USA spent $450 per person. Germany spent $380 per person.',reqs:[FOL,R('Có 500',N('500')),R('Có 450',N('450')),R('Có 380',N('380'))],models:['Japan spent the most per person, at $500, followed by the USA and Germany, at $450 and $380 respectively.']},
+  {cue:'Online sales reached a peak of $8 million in 2018. They subsequently declined to $6 million in 2020.',reqs:[R('Có Having + V3 hoặc before + V-ing',/having\s+(\w+ed|risen|fallen|reached)|before\s+\w+ing\b/),R('Có 8 million',N('8')),R('Có 6 million',N('6'))],models:['Having reached a peak of $8 million in 2018, online sales subsequently declined to $6 million in 2020.']}
+ ]},
+ {h:'Practice 3 – Transform the sentences',d:'Viết lại câu với từ cho sẵn. Không đổi số liệu.',tasks:[
+  {cue:'<span class="use">BEFORE</span> The figure rose from 30% in 2005 to 45% in 2010.',reqs:[BEF,R('Có 30%',N('30')),R('Có 45%',N('45'))],models:['The figure stood at 30% in 2005, before rising to 45% in 2010.']},
+  {cue:'<span class="use">THAN</span> In 2020, 70% of males used the Internet, compared with 55% of females.',reqs:[R('Có than',/\bthan\b/),R('Có 70% và 55%',/70.*55/)],models:['In 2020, the proportion of males using the Internet was higher than that of females, at 70% and 55% respectively.']},
+  {cue:'<span class="use">FOLLOWED</span> France had the largest number of tourists, at 10 million. Spain ranked second, at 8 million.',reqs:[FOL,R('Có 10 million',N('10')),R('Có Spain 8 million',/spain.*8/)],models:['France had the largest number of tourists, at 10 million, followed by Spain at 8 million.']},
+  {cue:'<span class="use">HAVING</span> House prices peaked at £300,000 in 2015 and then declined to £250,000.',reqs:[HAV,R('Có 300,000',N('300000')),R('Có 250,000',N('250000'))],models:['Having peaked at £300,000 in 2015, house prices declined to £250,000.']}
+ ]},
+ {h:'Practice 4 – Data → Sentence',d:'Viết MỘT câu nhiều lớp cho mỗi bảng, dùng cấu trúc cho sẵn.',tasks:[
+  {cue:'<span class="use">before + V-ing</span> nối số liệu 2010 và 2020.',table:[['Year','2000','2010','2020'],['Sales','$2m','$3m','$5m']],reqs:[BEF,R('Có $3m',N('3')),R('Có $5m',N('5'))],models:['Sales stood at $3m in 2010, before rising to $5m in 2020.','Sales increased from $2m in 2000 to $3m in 2010, before rising more sharply to $5m in 2020.']},
+  {cue:'<span class="use">higher/lower than + respectively</span> hoặc <span class="use">…, which was higher …</span>',table:[['Country','Percentage'],['UK','78%'],['France','62%']],reqs:[THN,R('Có 78% và 62%',/78.*62/)],models:['The percentage in the UK was higher than that in France, at 78% and 62% respectively.','The UK recorded 78%, which was higher than the figure for France (62%).']},
+  {cue:'<span class="use">followed by</span> xếp hạng 3 nước.',table:[['Country','Number of tourists'],['France','12m'],['Spain','10m'],['Italy','8m']],reqs:[FOL,R('Có 12m',N('12')),R('Có 10m',N('10')),R('Có 8m',N('8'))],models:['France attracted the most tourists, at 12m, followed by Spain and Italy, at 10m and 8m respectively.']},
+  {cue:'<span class="use">having + V3</span> thể hiện đỉnh rồi giảm.',table:[['Year','2010','2015','2020'],['Price','$40','$65','$50']],reqs:[HAV,R('Có $65',N('65')),R('Có $50',N('50'))],models:['Having risen from $40 to a peak of $65 in 2015, the price fell to $50 in 2020.']}
+ ]},
+ {h:'Practice 5 – Choose the best layering',d:'Tự chọn cấu trúc phù hợp nhất: before + V-ing / comparative / followed by / having + V3.',tasks:[
+  {cue:'UK: 82% · Germany: 74% · France: 61%',reqs:[R('Có followed by (hợp nhất cho 3 đối tượng)',/followed by/),R('Có đủ 82, 74, 61',/82.*74.*61/)],models:['The UK recorded the highest figure, at 82%, followed by Germany and France, at 74% and 61% respectively.']},
+  {cue:'2010: 45,000 visitors · 2015: 70,000 visitors · 2020: 55,000 visitors',reqs:[R('Có Having + V3 hoặc before + V-ing',/having\s+(\w+ed|risen|fallen|reached)|before\s+\w+ing\b/),R('Có 70,000',N('70000')),R('Có 55,000',N('55000'))],models:['Having risen from 45,000 to a peak of 70,000 in 2015, the number of visitors fell to 55,000 in 2020.']},
+  {cue:'Male employees: £42,000 · Female employees: £35,000',reqs:[THN,R('Có 42,000 và 35,000',/42000.*35000/)],models:['Male employees earned more than their female counterparts, at £42,000 and £35,000 respectively.']},
+  {cue:'2000: 20% · 2010: 35% · 2020: 60%',reqs:[BEF,R('Có 20, 35, 60',/20.*35.*60/)],models:['The figure stood at 20% in 2000 and rose to 35% in 2010, before surging to 60% in 2020.']}
+ ]}
+]});
+
+S.push({id:'final',code:'★',grp:'Tổng kết',name:'Thử thách: viết 1 đoạn thân bài',kind:'final',fc:'asia'});
+
+/* common error detector */
+const ERRS=[
+ [/\b(was|were|is|are|been|be)\s+(increased|decreased|risen|rose|fell|fallen|declined|dropped|grown|grew|climbed|surged|soared|fluctuated|plummeted)\b/,'Động từ xu hướng (increase, rise, fall…) không dùng bị động: viết "increased", không viết "was increased".'],
+ [/\breach(ed|es|ing)?\s+at\b/,'"reach" không đi với "at": reached 6 million. ("peaked at" thì đúng.)'],
+ [/\bmore\s+(higher|lower|bigger|smaller|larger|greater)\b/,'Không dùng "more" với tính từ -er: viết "higher", không viết "more higher".'],
+ [/\bbefore\s+(rose|fell|increased|decreased|declined|dropped|reached|surged|soared|climbed|grew|dipped|recovered|peaked|rise|fall|increase|decrease|reach|drop|climb|surge)\b/,'Sau "before" dùng V-ing: before rising / before falling.'],
+ [/\bwith the (figure|number|percentage|proportion|share)\s+(rose|fell|increased|decreased|reached|declined|dropped|rise|fall|reach|increase|decrease|was|were|is)\b/,'Sau "with the figure" dùng V-ing: with the figure rising / reaching / being …'],
+ [/\bhaving\s+(rose|fell|grew|rise|fall|grow|reach|peak|increase|decrease|drop|decline|climb)\b/,'Sau "having" dùng V3: having risen / fallen / grown / reached / peaked.'],
+ [/\b\d+(\.\d+)?\s+millions\b/,'Sau số cụ thể, "million" không thêm s: 2 million, 3.5 million.'],
+ [/\bthere (was|were|is) (a |an )?(slightly|sharply|significantly|dramatically|gradually|steadily|moderately|considerably)\b/,'Sau "there was a" dùng tính từ: a slight increase (không phải "slightly").'],
+ [/\bthere (was|were|is) (slight|sharp|significant|dramatic|gradual|steady|moderate|considerable|small|marginal)\s/,'Thiếu mạo từ: there was a slight increase.'],
+ [/\bfollowed\s+(with|from)\b/,'Dùng "followed by".'],
+ [/\bthe number of (oil|water|money|electricity|rice|coffee|waste)\b/,'Danh từ không đếm được dùng "the amount of".'],
+ [/\bpercents\b/,'"percent" không thêm s.'],
+ [/\b(in|on)\s+(19|20)\d\d\s+(witnessed|saw)\b/,'Thời gian làm chủ ngữ thì bỏ "In": The year 2010 witnessed …'],
+ [/\bpeaked\s+\d/,'Thiếu giới từ: peaked at 7%.']
+];
+
+/* ============ STATE ============ */
+let store={};
+try{store=JSON.parse(localStorage.getItem('wt1dyn')||'{}')||{}}catch(e){store={}}
+store.done=store.done||{};store.draft=store.draft||{};
+const save=()=>{try{localStorage.setItem('wt1dyn',JSON.stringify(store))}catch(e){}};
+let sound=store.sound!==false;
+
+/* ============ SOUND ============ */
+let actx=null;
+function tone(freqs,dur=0.18,type='sine',gap=0.09,vol=0.18){
+ if(!sound)return;
+ try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const t0=actx.currentTime;
+  freqs.forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;
+   const s=t0+i*gap;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(vol,s+0.01);g.gain.exponentialRampToValueAtTime(0.0008,s+dur+0.25);
+   o.connect(g).connect(actx.destination);o.start(s);o.stop(s+dur+0.3)});
+ }catch(e){}
+}
+const ting=()=>tone([1318.5,1975.5],0.22,'sine',0.11,0.16);
+const soft=()=>tone([392],0.12,'triangle',0,0.1);
+const win=()=>tone([523.3,659.3,784,1046.5,1318.5],0.16,'square',0.09,0.05);
+
+/* ============ CHART ============ */
+const tip=document.getElementById('tip');
+function fmt(v,c){return (v>=1000?v.toLocaleString('en-US'):v)+(c.unit==='%'?'%':'')}
+function chartSVG(c,hl){
+ const W=640,H=370,L=62,Rr=16,T=22,B=40,iw=W-L-Rr,ih=H-T-B;
+ const n=c.x.length,y=v=>T+ih-(v/c.yMax)*ih;
+ let xs;
+ if(c.type==='bar'){const bw=iw/n;xs=i=>L+bw*i+bw/2}
+ else{const x0=c.x[0],x1=c.x[n-1];xs=i=>L+((c.x[i]-x0)/(x1-x0))*(iw-30)+15}
+ const hlOn=hl&&hl.length, inHL=(s,i)=>hlOn&&hl.some(h=>h[0]===s&&i>=h[1]&&i<=h[2]);
+ const sHL=s=>hlOn&&hl.some(h=>h[0]===s);
+ let o=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${c.title}">`;
+ if(c.proj!=null){const px=c.type==='bar'?L+iw/n*c.proj:(xs(c.proj-1)+xs(c.proj))/2;
+  o+=`<rect x="${px}" y="${T}" width="${L+iw-px}" height="${ih}" fill="#eef1f6"/><text x="${L+iw-6}" y="${T+14}" text-anchor="end" font-size="14" fill="#5a6681" font-family="Be Vietnam Pro">Dự đoán</text>`}
+ for(let v=0;v<=c.yMax+1e-9;v+=c.yStep){o+=`<line x1="${L}" x2="${L+iw}" y1="${y(v)}" y2="${y(v)}" stroke="#dfe5ee" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="15" fill="#5a6681" font-family="IBM Plex Mono">${v>=1000?v.toLocaleString('en-US'):v}</text>`}
+ o+=`<line x1="${L}" x2="${L}" y1="${T}" y2="${T+ih}" stroke="#18233a"/><line x1="${L}" x2="${L+iw}" y1="${T+ih}" y2="${T+ih}" stroke="#18233a"/>`;
+ c.x.forEach((xv,i)=>{o+=`<text x="${xs(i)}" y="${T+ih+20}" text-anchor="middle" font-size="15" fill="#18233a" font-family="IBM Plex Mono">${xv}</text>`});
+ o+=`<text x="14" y="${T+ih/2}" transform="rotate(-90 14 ${T+ih/2})" text-anchor="middle" font-size="14" fill="#5a6681" font-family="Be Vietnam Pro">${c.yLabel}</text>`;
+ const labels=[];
+ if(c.type==='bar'){
+  const bw=iw/n,ns=c.series.length,gw=bw*0.74,b1=gw/ns;
+  c.series.forEach((s,si)=>s.d.forEach((v,i)=>{
+   const x=L+bw*i+(bw-gw)/2+b1*si,h=T+ih-y(v),op=hlOn?(inHL(si,i)?1:0.22):1;
+   o+=`<rect class="pt" data-s="${si}" data-i="${i}" x="${x+1}" y="${y(v)}" width="${b1-2}" height="${h}" fill="${COLORS[si]}" opacity="${op}" ${si===2?'':''}/>`;
+   if(inHL(si,i))labels.push([x+b1/2,y(v)-6,fmt(v,c),COLORS[si]]);
+  }));
+ }else{
+  c.series.forEach((s,si)=>{
+   const pts=s.d.map((v,i)=>[xs(i),y(v)]);
+   const op=hlOn?(sHL(si)?0.45:0.18):1;
+   o+=`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${COLORS[si]}" stroke-width="2.4" stroke-dasharray="${DASH[si]}" opacity="${op}" stroke-linejoin="round"/>`;
+   if(hlOn)hl.filter(h=>h[0]===si).forEach(h=>{
+    const seg=pts.slice(h[1],h[2]+1);
+    if(seg.length>1)o+=`<polyline points="${seg.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${COLORS[si]}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+   });
+   pts.forEach((p,i)=>{const on=inHL(si,i);
+    o+=`<circle class="pt" data-s="${si}" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="${on?6:4}" fill="${on?COLORS[si]:'#fff'}" stroke="${COLORS[si]}" stroke-width="2" opacity="${hlOn&&!sHL(si)?0.25:1}"/>`;
+    if(on)labels.push([p[0],p[1]-11,fmt(s.d[i],c),COLORS[si]]);
+   });
+  });
+ }
+ labels.forEach(l=>{const w=String(l[2]).length*9.4+12;
+  o+=`<g><rect x="${l[0]-w/2}" y="${l[1]-18}" width="${w}" height="23" rx="4" fill="#ffffff" stroke="${l[3]}" stroke-width="1.5"/><text x="${l[0]}" y="${l[1]-1}" text-anchor="middle" font-size="15" font-weight="600" fill="${l[3]}" font-family="IBM Plex Mono">${l[2]}</text></g>`});
+ return o+'</svg>';
+}
+function legendHTML(c){
+ return c.series.map((s,i)=>`<span><svg viewBox="0 0 26 10">${c.type==='bar'?`<rect x="4" y="0" width="18" height="10" fill="${COLORS[i]}"/>`:`<line x1="0" x2="26" y1="5" y2="5" stroke="${COLORS[i]}" stroke-width="3" stroke-dasharray="${DASH[i]}"/>`}</svg>${s.n}</span>`).join('');
+}
+function tableHTML(c){
+ return `<table><tr><th></th>${c.x.map(x=>`<th>${x}</th>`).join('')}</tr>${c.series.map(s=>`<tr><td>${s.n}</td>${s.d.map(v=>`<td>${v>=1000?v.toLocaleString('en-US'):v}</td>`).join('')}</tr>`).join('')}</table>`;
+}
+let cardSeq=0;
+function chartCard(key){
+ const c=CHARTS[key],id='ch'+(cardSeq++);
+ return `<div class="chartcard" data-chart="${key}" id="${id}">
+  <p class="prompt">${c.prompt}</p>
+  <div class="legend">${legendHTML(c)}</div>
+  <div class="chartbox">${chartSVG(c,null)}</div>
+  <div class="chartfoot"><span>${c.src}${key==='aus'?'':' · số liệu vẽ lại gần đúng'}</span><button class="linkbtn" data-tbl="${id}">Hiện bảng số liệu</button></div>
+  <div class="datatable" hidden>${tableHTML(c)}</div></div>`;
+}
+function setHL(card,hl){
+ const c=CHARTS[card.dataset.chart];card.querySelector('.chartbox').innerHTML=chartSVG(c,hl);
+}
+
+/* ============ TASKS ============ */
+let TASKS={};
+const ICON_OK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+const ICON_NO='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+const ICON_WARN='<svg viewBox="0 0 16 16"><path d="M8 1.5l7 13H1z" fill="currentColor"/><path d="M8 6v4M8 11.6v1" stroke="#fff6dc" stroke-width="1.8"/></svg>';
+function taskHTML(t,id,num){
+ TASKS[id]=t;
+ const draft=store.draft[id]!=null?store.draft[id]:(t.stem||'');
+ const tbl=t.table?`<table class="minitable">${t.table.map((r,ri)=>`<tr>${r.map(c=>ri===0?`<th>${c}</th>`:`<td>${c}</td>`).join('')}</tr>`).join('')}</table>`:'';
+ return `<div class="task${store.done[id]?' done':''}" id="${id}">
+  <div class="thead"><span class="n">${num}</span><p class="cue">${t.cue}</p></div>${tbl}
+  <textarea id="ta-${id}" rows="2" spellcheck="false" placeholder="Con viết câu ở đây…">${draft.replace(/</g,'&lt;')}</textarea>
+  <div class="acts"><button class="btn" data-act="check">Kiểm tra</button>${t.hint?'<button class="btn ghost" data-act="hint">Gợi ý</button>':''}<button class="btn soft" data-act="model">Câu mẫu</button></div>
+  ${t.hint?`<div class="hintbox" hidden>${t.hint}</div>`:''}
+  <ul class="fb" hidden></ul>
+  <div class="modelbox" hidden><div class="lab">Câu mẫu tham khảo</div>${t.models.map(m=>`<p>${m}</p>`).join('')}<div class="lab" style="margin-top:6px;text-transform:none;letter-spacing:0">Câu của con có thể khác mà vẫn đúng. So sánh cấu trúc, số liệu và thì.</div></div>
+ </div>`;
+}
+function norm(s){return s.toLowerCase().replace(/[’‘]/g,"'").replace(/[–—]/g,'-').replace(/(\d),(\d{3})/g,'$1$2').replace(/(\d),(\d{3})/g,'$1$2').replace(/\s+/g,' ').trim()}
+function runCheck(id){
+ const t=TASKS[id],el=document.getElementById(id),ta=el.querySelector('textarea'),fb=el.querySelector('.fb');
+ const raw=ta.value,txt=norm(raw);
+ fb.hidden=false;
+ if(!txt||(t.stem&&norm(t.stem)===txt)){fb.innerHTML=`<li class="no">${ICON_NO}Con chưa viết gì thêm.</li>`;soft();return}
+ let ok=0,html='';
+ t.reqs.forEach(r=>{const p=r.re.test(txt);if(p)ok++;html+=`<li class="${p?'ok':'no'}">${p?ICON_OK:ICON_NO}<span>${r.label}</span></li>`});
+ const errs=ERRS.filter(e=>e[0].test(txt));
+ errs.forEach(e=>html+=`<li class="err">${ICON_WARN}<span>${e[1]}</span></li>`);
+ if(!/[.!]$/.test(raw.trim()))html+=`<li class="err">${ICON_WARN}<span>Nhớ kết thúc câu bằng dấu chấm.</span></li>`;
+ const all=ok===t.reqs.length&&!errs.length;
+ html=`<li class="sum ${all?'ok':'no'}">${all?ICON_OK:ICON_NO}<span>${all?'Rất tốt! Câu của con đạt đủ yêu cầu. Xem câu mẫu để so sánh thêm.':`Đạt ${ok}/${t.reqs.length} yêu cầu${errs.length?`, có ${errs.length} lỗi cần sửa`:''}. Sửa rồi bấm Kiểm tra lại nhé.`}</span></li>`+html;
+ fb.innerHTML=html;
+ logResult(id,t,raw,ok,errs,all);
+ if(all){const first=!store.done[id];store.done[id]=1;save();el.classList.add('done');ting();if(first)refreshProgress()}else soft();
+}
+
+/* ============ RENDER ============ */
+const main=document.getElementById('main'),side=document.getElementById('side');
+function sectionTasks(s){
+ if(s.kind==='practice')return s.parts.flatMap((p,pi)=>p.tasks.map((t,ti)=>`${s.id}-p${pi}-${ti}`));
+ const a=[];(s.aus||[]).forEach((t,i)=>a.push(`${s.id}-a${i}`));(s.tasks||[]).forEach((t,i)=>a.push(`${s.id}-f${i}`));return a;
+}
+function renderNav(){
+ let h='',g='';
+ S.forEach(s=>{if(s.grp!==g){g=s.grp;h+=`<div class="grp">${g}</div>`}
+  const ids=sectionTasks(s),d=ids.filter(i=>store.done[i]).length;
+  h+=`<a href="#${s.id}" data-id="${s.id}"><span class="code">${s.code}</span><span>${s.name}</span>${ids.length?`<span class="cnt${d===ids.length?' full':''}">${d}/${ids.length}</span>`:''}</a>`});
+ side.innerHTML=h;
+}
+function theoryHTML(s){
+ return `<div class="theory"><div><h3>Công thức</h3><div class="formula">${s.formula.map(f=>`<span class="${f[0]}">${f[1]}</span>`).join('')}</div>
+  <h3>Ví dụ</h3>${s.ex.map(e=>`<div class="ex">${e}</div>`).join('')}</div><div class="note">${s.notes}</div></div>`;
+}
+function pairHTML(title,src,key,tasks,prefix){
+ return `<div class="block"><div class="blabel"><h3>${title}</h3><span class="src">${src}</span></div>
+  <div class="pair">${chartCard(key)}<div class="tasks">${tasks.map((t,i)=>taskHTML(t,prefix+i,i+1)).join('')}</div></div></div>`;
+}
+function renderSection(s,idx){
+ let h=`<section class="view" id="v-${s.id}" data-id="${s.id}">`;
+ if(s.kind==='intro'){
+  h+=`<div class="shead"><span class="tag">Writing Task 1</span><h2>Ôn tập cấu trúc câu cho biểu đồ động</h2><p>Phần c. Cấu trúc cần dùng và phần d. Viết câu theo layers trong phiếu học, kèm biểu đồ từ các đề forecast 2026 để con luyện viết câu.</p></div>
+  <div class="intro"><div class="card"><h3 style="font-size:20px;margin-bottom:6px">Mỗi bài con làm theo 3 bước</h3>
+   <ol class="steps"><li>Đọc <b>công thức</b> và ví dụ. Chú ý ô vàng: lỗi hay gặp.</li><li>Làm <b>Bài 1</b> với biểu đồ Úc trong phiếu.</li><li>Làm <b>Bài 2</b> với biểu đồ forecast mới.</li></ol>
+   <p style="margin:12px 0 4px"><b>Khi viết:</b> bấm vào ô viết, phần biểu đồ cần tả sẽ <b>tô đậm và hiện số</b>. Bấm <b>Kiểm tra</b> để máy soát cấu trúc, số liệu và lỗi hay gặp. Câu được tính hoàn thành khi đạt đủ yêu cầu.</p>
+   <p style="margin:8px 0 0;color:var(--muted);font-size:15px">Máy chỉ soát các ý chính, không chấm thay thầy. Luôn so câu của con với câu mẫu. Bài làm được lưu trên máy này.</p>
+   <div class="map">${S.filter(x=>x.kind!=='intro').map(x=>`<a href="#${x.id}"><b>${x.code}</b>${x.name}</a>`).join('')}</div></div>
+   <div>${chartCard('aus')}</div></div>`;
+ }else if(s.kind==='sample'){
+  h+=`<div class="shead"><span class="tag">B8</span><h2>Soi cấu trúc trong bài mẫu band 8.0</h2><p>Bấm từng nhãn để tô màu cấu trúc đó trong bài. Con thử tự tìm trước khi bấm.</p></div>
+  <div class="pair">${chartCard('aus')}<div class="card"><div class="chips" id="chips">
+   ${[['s1','C1 Đối tượng làm chủ ngữ','#1f3a68'],['s2','C2 The figure/share… làm chủ ngữ','#14806f'],['nom','C5 Danh từ hoá','#6a4bb0'],['cmp','So sánh / respectively','#b9790a'],['peak','Đỉnh / đáy','#c8323c'],['before','before + V-ing / N','#c25b12'],['link','Từ nối','#5a6681']].map(c=>`<button class="chip" aria-pressed="false" data-k="${c[0]}"><i style="background:${c[2]}"></i>${c[1]}</button>`).join('')}</div>
+   <div class="essay" id="essay">
+   <p>The line graph illustrates how Australia exported its products to four countries, including Japan, the US, China, and India, between 1990 and 2012.</p>
+   <p><mark class="link">Overall</mark>, <mark class="nom">there was an increase in the proportion of Australian exports to India and China</mark>, with the most dramatic rise being seen in the latter, making it the largest export destination for Australia by the end of the period. <mark class="link">In contrast</mark>, <mark class="nom">exports to the US and Japan experienced a decrease</mark> over the given timeframe.</p>
+   <p><mark class="link">Looking at the chart in more detail</mark>, in 1990, among the four destinations, <mark class="s1">India and China were the smallest export partners for Australia</mark>, with negligible figures of 1% and 2%, <mark class="cmp">respectively</mark>. <mark class="link">Thereafter</mark>, <mark class="s1">China's importation significantly increased</mark> over the period, as <mark class="s2">the percentage of exports to this country steadily rose to 5%</mark> by 2000, <mark class="before">before surging more than fivefold to 27%</mark> in the final year. <mark class="link">Likewise</mark>, <mark class="s1">India maintained a marginal presence</mark> in Australia's export market, at just 1% for the first decade, after which its share slightly increased, <mark class="peak">reaching a peak of 7%</mark> in 2010, <mark class="before">before falling back to 5%</mark> two years later.</p>
+   <p><mark class="link">With regard to</mark> the remaining countries, in the first year, <mark class="s1">Japan was the leading destination</mark> shown for Australian goods, with more than a quarter of total exports going there, <mark class="cmp">twice the figure for the US</mark>, at 11%. <mark class="link">In the following years</mark>, <mark class="s2">the figures for Japan fell to 17%</mark> and stayed unchanged in the two final years. <mark class="link">Similarly</mark>, <mark class="s2">the share of Australian exports to the US</mark> <mark class="nom">underwent a downward fluctuation</mark> throughout the period, <mark class="peak">bottoming out at 5%</mark> in 2010 <mark class="before">before a modest recovery to 7%</mark> by the end of the period.</p></div>
+   <div class="qa"><details><summary>Câu hỏi 1: Vì sao bài chia China + India một đoạn, Japan + US một đoạn?</summary><p>Vì chia nhóm theo <b>điểm chung</b>: China và India cùng tăng, Japan và US cùng giảm.</p></details>
+   <details><summary>Câu hỏi 2: "before a modest recovery" khác "before recovering" thế nào?</summary><p>Cả hai đều đúng. "before + danh từ" (a modest recovery) là dạng danh từ hoá; "before + V-ing" (before recovering) là dạng động từ. Dùng xen kẽ để câu đa dạng.</p></details>
+   <details><summary>Câu hỏi 3: Mỗi đoạn thân bài mở đầu bằng gì?</summary><p>Câu 1 mô tả các đối tượng ở năm đầu, từ <b>LỚN đến bé</b> (Japan was the leading destination…, twice the figure for the US). Sau đó tả toàn bộ quá trình của đối tượng lớn, rồi đối tượng bé.</p></details></div>
+  </div></div>`;
+ }else if(s.kind==='practice'){
+  h+=`<div class="shead"><span class="tag">P1–5</span><h2>Practice 1–5 trong phiếu học</h2><p>Luyện 4 cấu trúc layering: before + V-ing · comparatives · followed by · having + V3.</p></div>`;
+  s.parts.forEach((p,pi)=>{h+=`<div class="block"><div class="blabel"><h3>${p.h}</h3><span class="src">${p.d}</span></div><div class="pair" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))">${p.tasks.map((t,ti)=>taskHTML(t,`${s.id}-p${pi}-${ti}`,ti+1)).join('')}</div></div>`});
+ }else if(s.kind==='final'){
+  h+=`<div class="shead"><span class="tag">★</span><h2>Thử thách: viết 1 đoạn thân bài</h2><p>Viết đoạn thân bài cho <b>Malaysia và the Philippines</b> (hai nước đô thị hoá cao hơn). Cố dùng ít nhất <b>4 cấu trúc khác nhau</b> đã học.</p></div>
+  <div class="pair">${chartCard('asia')}<div class="card">
+   <p style="margin:0 0 6px"><b>Dàn ý gợi ý:</b> Câu 1: hai nước năm 1970 (followed by / respectively) → Câu 2: Malaysia cả quá trình (before + V-ing) → Câu 3: Philippines (thời gian làm chủ ngữ / danh từ hoá) → Câu 4: dự đoán 2040 (so sánh).</p>
+   <textarea id="ta-final" rows="9" style="min-height:220px" placeholder="Looking at the chart in more detail, …">${(store.draft.final||'').replace(/</g,'&lt;')}</textarea>
+   <div class="acts"><button class="btn" id="finalCheck">Đếm cấu trúc</button><button class="btn soft" id="finalModel">Đoạn mẫu</button></div>
+   <div class="meter" id="meter"></div><div class="stat" id="fstat"></div><ul class="fb" id="ffb" hidden></ul>
+   <div class="modelbox" id="fmodel" hidden><div class="lab">Đoạn mẫu</div><p>In 1970, Malaysia and the Philippines had similar levels of urbanisation, at 34% and 33% respectively. Malaysia's urban population then rose steadily to 62% in 2000, before continuing to climb to 77% in 2020. By contrast, the 1990s and 2000s saw little change in the Philippines, with the figure hovering at around 47%. Having remained stable for two decades, the percentage of city dwellers in the Philippines is predicted to increase to 65% by 2040. However, it will still be considerably lower than that of Malaysia, which is expected to reach a peak of 85%.</p></div>
+  </div></div>`;
+ }else{
+  h+=`<div class="shead"><span class="tag">${s.code}</span><h2>${s.name}</h2><p>${s.sub}</p></div>`+theoryHTML(s);
+  if(s.aus)h+=pairHTML('Bài 1 · Biểu đồ trong phiếu','Australian exports to 4 countries','aus',s.aus,`${s.id}-a`);
+  h+=pairHTML(s.aus?'Bài 2 · Luyện với đề forecast':'Luyện với đề forecast',CHARTS[s.fc].title,s.fc,s.tasks,`${s.id}-f`);
+ }
+ const prev=S[idx-1],next=S[idx+1];
+ h+=`<div class="pager">${prev?`<button data-go="${prev.id}"><small>Bài trước</small>${prev.code} · ${prev.name}</button>`:''}${next?`<button class="nx" data-go="${next.id}"><small>Bài tiếp</small>${next.code} · ${next.name}</button>`:''}</div>`;
+ if(s.kind!=='intro')h+=`<p class="disclaim">Các biểu đồ forecast được vẽ lại từ đề dự đoán 2026 với số liệu gần đúng để luyện câu. Khi làm đề thật, con đọc số trên biểu đồ gốc.</p>`;
+ return h+'</section>';
+}
+function render(){main.innerHTML=S.map(renderSection).join('');renderNav();refreshProgress()}
+
+function refreshProgress(){
+ const all=S.flatMap(sectionTasks),d=all.filter(i=>store.done[i]).length;
+ document.getElementById('progBar').style.width=(all.length?d/all.length*100:0)+'%';
+ document.getElementById('progTxt').textContent=d+'/'+all.length;
+ const cur=location.hash.slice(1);renderNav();markNav(cur||'start');
+ if(d===all.length&&all.length&&!store.won){store.won=1;save();win()}
+}
+function markNav(id){side.querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.dataset.id===id))}
+function show(id){
+ if(!S.some(s=>s.id===id))id='start';
+ document.querySelectorAll('section.view').forEach(v=>v.classList.toggle('on',v.dataset.id===id));
+ markNav(id);side.classList.remove('open');window.scrollTo({top:0});
+}
+
+/* ============ EVENTS ============ */
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');
+ if(b&&b.dataset.act){const task=b.closest('.task'),id=task.id;
+  if(b.dataset.act==='check')runCheck(id);
+  if(b.dataset.act==='hint'){const h=task.querySelector('.hintbox');h.hidden=!h.hidden}
+  if(b.dataset.act==='model'){const m=task.querySelector('.modelbox');m.hidden=!m.hidden}
+  focusTask(task);return}
+ if(b&&b.dataset.go){location.hash=b.dataset.go;return}
+ if(b&&b.dataset.tbl){const card=document.getElementById(b.dataset.tbl),t=card.querySelector('.datatable');t.hidden=!t.hidden;b.textContent=t.hidden?'Hiện bảng số liệu':'Ẩn bảng số liệu';return}
+ if(b&&b.classList.contains('chip')){const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);document.getElementById('essay').classList.toggle('h-'+b.dataset.k,on);if(on)tone([880],0.08,'sine',0,0.08);return}
+ if(b&&b.id==='finalCheck'){finalCheck();return}
+ if(b&&b.id==='finalModel'){const m=document.getElementById('fmodel');m.hidden=!m.hidden;return}
+ if(b&&b.id==='navBtn'){side.classList.toggle('open');return}
+ if(b&&b.id==='sndBtn'){sound=!sound;store.sound=sound;save();b.setAttribute('aria-pressed',sound);document.getElementById('sndLbl').textContent=sound?'Âm thanh':'Tắt tiếng';document.getElementById('sndWave').style.display=sound?'':'none';if(sound)ting();return}
+ const t=e.target.closest('.task');if(t)focusTask(t);
+ if(side.classList.contains('open')&&!e.target.closest('nav.side'))side.classList.remove('open');
+});
+function focusTask(task){
+ const t=TASKS[task.id];task.closest('section').querySelectorAll('.task.focus').forEach(x=>x.classList.remove('focus'));task.classList.add('focus');
+ const block=task.closest('.pair');if(!block||!t.hl)return;const card=block.querySelector('.chartcard');if(card)setHL(card,t.hl);
+}
+document.addEventListener('focusin',e=>{const t=e.target.closest&&e.target.closest('.task');if(t)focusTask(t)});
+let saveT=null;
+document.addEventListener('input',e=>{
+ if(e.target.tagName!=='TEXTAREA')return;const id=e.target.id.replace(/^ta-/,'');store.draft[id]=e.target.value;clearTimeout(saveT);saveT=setTimeout(save,400);
+});
+document.addEventListener('keydown',e=>{if(e.target.tagName==='TEXTAREA'&&e.key==='Enter'&&(e.ctrlKey||e.metaKey)){const t=e.target.closest('.task');if(t){e.preventDefault();runCheck(t.id)}}});
+document.addEventListener('mousemove',e=>{
+ const p=e.target.closest&&e.target.closest('.pt');
+ if(!p){tip.style.display='none';return}
+ const c=CHARTS[p.closest('.chartcard').dataset.chart],s=c.series[+p.dataset.s];
+ tip.textContent=`${s.n} · ${c.x[+p.dataset.i]}: ${fmt(s.d[+p.dataset.i],c)}${c.unit!=='%'?c.unit.replace(' cases',' cases'):''}`.replace(/(\d)( million)( million)/,'$1$2');
+ tip.style.display='block';tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-30)+'px';
+});
+window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+
+/* final challenge */
+const FINAL=[
+ ['C1 Đối tượng làm chủ ngữ',/(^|[.]\s*)(malaysia|the philippines|philippines)('s)?\b[^.]*\b(rose|increased|grew|climbed|remained|stayed|fell|dipped|surged|is (expected|predicted|projected))/],
+ ['C2 The figure / percentage …',/\bthe (figure|percentage|proportion|share|number) (for|of)\b/],
+ ['C3 Thời gian làm chủ ngữ',/\b(19|20)\d0s? (witnessed|saw)\b|\bthe (year|period|decade) [^.]{0,20}(witnessed|saw)\b|\b(19|20)\d\d (witnessed|saw)\b/],
+ ['C4 Lượng thay đổi làm chủ ngữ',/\ban? (\w+ )?(increase|decrease|rise|fall|drop|decline) of [^.]*was (recorded|seen|witnessed)/],
+ ['C5 Danh từ hoá',/\bthere (was|were|is|will be|is expected to be|is predicted to be) an? (\w+ )?(increase|decrease|rise|fall|drop|decline|growth)|\bexperienced an? (\w+ )?(increase|decrease|rise|fall)/],
+ ['So sánh',/\bthan\b|respectively|surpass|overt(ook|ake)|whereas|while|by contrast|in contrast/],
+ ['Đỉnh / đáy',/peak|bottomed out|a low of|highest|lowest/],
+ ['before + V-ing',/before \w+ing\b/],
+ ['followed by',/followed by/],
+ ['having + V3',/having (\w+ed|risen|fallen|grown|reached|hit)\b/]
+];
+function finalCheck(){
+ const ta=document.getElementById('ta-final'),txt=norm(ta.value),m=document.getElementById('meter');
+ if(!txt){document.getElementById('fstat').textContent='Con chưa viết gì.';soft();return}
+ let hits=0;m.innerHTML=FINAL.map(f=>{const h=f[1].test(txt);if(h)hits++;return `<span class="${h?'hit':''}">${f[0]}</span>`}).join('');
+ const words=txt.split(/\s+/).filter(Boolean).length,nums=(txt.match(/\d+(\.\d+)?%?/g)||[]).length;
+ document.getElementById('fstat').textContent=`${words} từ · ${nums} số liệu · ${hits}/${FINAL.length} cấu trúc`;
+ const errs=ERRS.filter(e=>e[0].test(txt)),fb=document.getElementById('ffb');
+ logFinal(ta.value,FINAL.filter(f=>f[1].test(txt)).map(f=>f[0]),words,errs);
+ fb.hidden=false;
+ fb.innerHTML=`<li class="sum ${hits>=4&&!errs.length?'ok':'no'}">${hits>=4&&!errs.length?ICON_OK:ICON_NO}<span>${hits>=4?(errs.length?'Đủ cấu trúc rồi, sửa nốt lỗi bên dưới nhé.':'Đạt thử thách! Con đã dùng từ 4 cấu trúc trở lên.'):`Con mới dùng ${hits} cấu trúc. Cần ít nhất 4.`}</span></li>`+errs.map(e=>`<li class="err">${ICON_WARN}<span>${e[1]}</span></li>`).join('');
+ if(hits>=4&&!errs.length){if(!store.done.final){store.done.final=1;save();refreshProgress()}win()}else soft();
+}
+/* final counts as a task */
+const _st=sectionTasks;sectionTasks=function(s){return s.kind==='final'?['final']:_st(s)};
+
+/* ============ GỬI BÀI VỀ GOOGLE SHEET ============ */
+const SHEET_URL='https://script.google.com/macros/s/AKfycbzmY4g3lau092LGoVA3ApYgafgeYyfPbjYNwhbTddBEaZp8hFWUS7QD-b4R29eutlRg/exec';   // link .../exec của Apps Script
+const PAGE_NAME='WT1 · Dynamic Charts Revision';
+store.res=store.res||{};
+let pendingChecks=[],syncT=null;
+const stripTags=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+const secName=s=>s.code+' · '+s.name;
+function secOf(id){return S.find(s=>sectionTasks(s).includes(id))}
+function setSync(msg,cls){const el=document.getElementById('syncTxt');el.textContent=msg;el.className='syncTxt'+(cls?' '+cls:'')}
+function logResult(id,t,raw,ok,errs,all){
+ const r=store.res[id]||{tries:0};
+ r.tries++;r.text=raw.trim();r.ok=ok;r.total=t.reqs.length;r.errs=errs.map(e=>e[1]);r.pass=all;
+ store.res[id]=r;save();
+ const s=secOf(id);
+ pendingChecks.push({id,at:Date.now(),sec:s?secName(s):'',cue:stripTags(t.cue),text:r.text,ok,total:r.total,pass:all,errs:r.errs});
+ queueSync();
+}
+function logFinal(text,hits,words,errs){
+ store.finalRes={text:text.trim(),hits,words,errs:errs.map(e=>e[1])};save();
+ pendingChecks.push({id:'final',at:Date.now(),sec:'★ Thử thách',cue:'Đoạn thân bài Malaysia & the Philippines',text:text.trim(),ok:hits.length,total:FINAL.length,pass:hits.length>=4&&!errs.length,errs:store.finalRes.errs});
+ queueSync();
+}
+function buildPayload(event){
+ const items=[];
+ S.forEach(s=>{if(s.kind==='final')return;
+  sectionTasks(s).forEach(id=>{const t=TASKS[id];if(!t)return;const r=store.res[id]||{};
+   items.push({id,sec:secName(s),cue:stripTags(t.cue),text:r.text||'',pass:!!store.done[id],ok:r.ok||0,total:t.reqs.length,tries:r.tries||0,errs:r.errs||[]})})});
+ const all=S.flatMap(sectionTasks),done=all.filter(i=>store.done[i]).length;
+ const st=store.student;
+ return {sid:st.sid,name:st.name,cls:st.cls,page:PAGE_NAME,event,done,total:all.length,final:store.finalRes||null,items,checks:pendingChecks.splice(0)};
+}
+function linkOK(){return /^https:\/\/script\.google\.com\//.test(SHEET_URL)}
+function sendNow(event){
+ clearTimeout(syncT);
+ if(!store.student)return Promise.resolve(false);
+ if(!linkOK()){setSync('Chưa gắn link Sheet','err');return Promise.resolve(false)}
+ const p=buildPayload(event);
+ setSync('Đang lưu…');
+ return fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)})
+  .then(()=>{setSync('Đã lưu '+new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),'');return true})
+  .catch(()=>{pendingChecks=p.checks.concat(pendingChecks);setSync('Mất mạng, sẽ gửi lại','err');queueSync(15000);return false});
+}
+function queueSync(ms){clearTimeout(syncT);syncT=setTimeout(()=>sendNow('check'),ms||2500)}
+window.addEventListener('pagehide',()=>{
+ if(!pendingChecks.length||!store.student||!linkOK()||!navigator.sendBeacon)return;
+ navigator.sendBeacon(SHEET_URL,new Blob([JSON.stringify(buildPayload('check'))],{type:'text/plain;charset=utf-8'}));
+});
+
+/* đăng nhập */
+const who=document.getElementById('who'),whoName=document.getElementById('whoName'),whoCls=document.getElementById('whoCls'),whoErr=document.getElementById('whoErr');
+function showMe(){document.getElementById('meLbl').textContent=store.student?store.student.name.split(' ').slice(-1)[0]+' · '+store.student.cls:'Học sinh'}
+function openWho(){whoName.value=store.student?store.student.name:'';whoCls.value=store.student?store.student.cls:'';whoErr.textContent='';who.hidden=false;setTimeout(()=>whoName.focus(),50)}
+document.getElementById('whoOk').addEventListener('click',()=>{
+ const name=whoName.value.trim().replace(/\s+/g,' '),cls=whoCls.value.trim().toUpperCase().replace(/\s+/g,'');
+ if(name.split(' ').length<2){whoErr.textContent='Con nhập đầy đủ họ và tên nhé.';return}
+ if(!cls){whoErr.textContent='Con nhập lớp nhé.';return}
+ const old=store.student;
+ const same=old&&old.name.toLowerCase()===name.toLowerCase()&&old.cls===cls;
+ if(old&&!same){
+  if(!confirm('Đổi sang học sinh khác sẽ xoá bài làm đang lưu trên máy này. Tiếp tục?'))return;
+  store.done={};store.draft={};store.res={};store.finalRes=null;store.won=0;pendingChecks=[];
+  render();show(location.hash.slice(1)||'start');
+ }
+ store.student=same?old:{name,cls,sid:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)};
+ save();who.hidden=true;showMe();
+ if(!same)sendNow('check');
+});
+[whoName,whoCls].forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('whoOk').click()}));
+document.getElementById('meBtn').addEventListener('click',openWho);
+document.getElementById('submitBtn').addEventListener('click',()=>{
+ if(!store.student){openWho();return}
+ const all=S.flatMap(sectionTasks),done=all.filter(i=>store.done[i]).length;
+ if(done<all.length&&!confirm(`Con mới hoàn thành ${done}/${all.length} câu. Vẫn nộp bài?`))return;
+ sendNow('submit').then(ok=>{if(ok){win();alert('Đã nộp bài! Con vẫn có thể làm tiếp và nộp lại.')}else if(!linkOK())alert('Trang chưa gắn link Google Sheet. Báo thầy nhé.');else alert('Chưa gửi được (mất mạng?). Con thử bấm Nộp bài lại nhé.')});
+});
+
+render();
+showMe();
+if(!store.student)openWho();
+if(!sound){document.getElementById('sndBtn').setAttribute('aria-pressed','false');document.getElementById('sndLbl').textContent='Tắt tiếng';document.getElementById('sndWave').style.display='none'}
+show(location.hash.slice(1)||'start');
+</script>
+
+</body></html>
